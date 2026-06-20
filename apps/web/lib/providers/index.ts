@@ -3,12 +3,12 @@
  * falls back to the offline echo provider so chat works with no keys.
  * TODO Fasa 3b: per-owner encrypted provider_config (AES-GCM via MOP_AGENT_SECRET).
  */
-import type { ChatProvider } from "./types.js";
-import { anthropicProvider } from "./anthropic.js";
-import { openRouterProvider } from "./openrouter.js";
-import { echoProvider } from "./echo.js";
+import type { ChatProvider } from "./types";
+import { anthropicProvider } from "./anthropic";
+import { openRouterProvider } from "./openrouter";
+import { echoProvider } from "./echo";
 
-export type { ChatProvider, ChatOptions, Msg } from "./types.js";
+export type { ChatProvider, ChatOptions, Msg } from "./types";
 export { anthropicProvider, openRouterProvider, echoProvider };
 
 export function resolveProvider(_ownerId?: string): ChatProvider {

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ChatProvider, ChatOptions } from "./types.js";
+import type { ChatProvider, ChatOptions } from "./types";
 
 export function anthropicProvider(apiKey: string, model = "claude-sonnet-4-6"): ChatProvider {
   const client = new Anthropic({ apiKey });

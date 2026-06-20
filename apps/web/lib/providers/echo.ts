@@ -1,4 +1,4 @@
-import type { ChatProvider, ChatOptions } from "./types.js";
+import type { ChatProvider, ChatOptions } from "./types";
 
 /**
  * Offline provider — no API key. Echoes a deterministic answer that proves the

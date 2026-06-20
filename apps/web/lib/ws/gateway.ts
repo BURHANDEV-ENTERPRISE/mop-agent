@@ -15,8 +15,8 @@ import {
   type LinkMessage,
   type McpToolName,
 } from "@mop/link-protocol";
-import { findProjectByToken, setProjectStatus } from "../link/store.js";
-import { ingestSnapshot } from "../brain/mirror.js";
+import { findProjectByToken, setProjectStatus } from "../link/store";
+import { ingestSnapshot } from "../brain/mirror";
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void };
 

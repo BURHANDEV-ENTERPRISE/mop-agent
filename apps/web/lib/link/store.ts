@@ -6,8 +6,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { Capabilities, ProjectManifest } from "@mop/link-protocol";
-import { getDb } from "../db/client.js";
-import { project, pairingCode } from "../db/schema.js";
+import { getDb } from "../db/client";
+import { project, pairingCode } from "../db/schema";
 
 export type ProjectRecord = {
   id: string;

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ChatProvider, ChatOptions } from "./types.js";
+import type { ChatProvider, ChatOptions } from "./types";
 
 /** OpenRouter is OpenAI-compatible — unlocks most other models in one adapter. */
 export function openRouterProvider(apiKey: string, model = "anthropic/claude-sonnet-4.6"): ChatProvider {

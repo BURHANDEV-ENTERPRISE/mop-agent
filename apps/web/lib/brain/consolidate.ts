@@ -10,9 +10,9 @@
  * runs offline; pass an LLM-backed extractor for richer synthesis.
  */
 import { randomUUID } from "node:crypto";
-import { getDb } from "../db/client.js";
-import { memoryEntry, semanticNote } from "../db/schema.js";
-import { embedAndIndex } from "../memory/embed.js";
+import { getDb } from "../db/client";
+import { memoryEntry, semanticNote } from "../db/schema";
+import { embedAndIndex } from "../memory/embed";
 
 const STOPWORDS = new Set([
   "the", "and", "for", "with", "that", "this", "from", "into", "when", "every",

@@ -7,7 +7,7 @@
  */
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
-import { getSqlite } from "./db/client.js";
+import { getSqlite } from "./db/client";
 
 function userCount(): number {
   try {

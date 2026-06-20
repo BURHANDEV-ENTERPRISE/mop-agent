@@ -10,7 +10,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { isReadTool, type McpToolName } from "@mop/link-protocol";
-import { callFlow, isOnline } from "../ws/gateway.js";
+import { callFlow, isOnline } from "../ws/gateway";
 
 export type ActionStatus = "pending" | "denied" | "executed" | "failed";
 

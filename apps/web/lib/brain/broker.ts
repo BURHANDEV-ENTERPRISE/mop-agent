@@ -6,9 +6,9 @@
  * (TODO: gate on an explicit project link once links are modelled).
  */
 import { inArray } from "drizzle-orm";
-import { getDb } from "../db/client.js";
-import { memoryEntry, semanticNote } from "../db/schema.js";
-import { semanticSearch } from "../memory/embed.js";
+import { getDb } from "../db/client";
+import { memoryEntry, semanticNote } from "../db/schema";
+import { semanticSearch } from "../memory/embed";
 
 export type RecalledMemory = {
   id: string;

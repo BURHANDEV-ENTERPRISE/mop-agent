@@ -2,8 +2,8 @@
  * Migrations: app tables (raw SQL, idempotent) + sqlite-vec virtual table +
  * Better Auth tables (via better-auth/db/migration). Safe to run repeatedly.
  */
-import { getSqlite } from "./client.js";
-import { EMBED_DIM } from "../memory/embed.js";
+import { getSqlite } from "./client";
+import { EMBED_DIM } from "../memory/embed";
 
 const APP_TABLES_SQL = `
 CREATE TABLE IF NOT EXISTS project (

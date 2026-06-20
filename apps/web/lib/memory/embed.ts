@@ -6,8 +6,8 @@
  * runs offline. Text sharing words lands near in cosine space, which is enough to
  * demonstrate recall plumbing. Swap in a provider/local model later via setEmbedder.
  */
-import { getSqlite, getDb } from "../db/client.js";
-import { vecMap } from "../db/schema.js";
+import { getSqlite, getDb } from "../db/client";
+import { vecMap } from "../db/schema";
 
 export const EMBED_DIM = 384;
 

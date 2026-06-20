@@ -5,9 +5,9 @@
  */
 import { eq, desc } from "drizzle-orm";
 import type { SnapshotPushMessage } from "@mop/link-protocol";
-import { getDb } from "../db/client.js";
-import { memoryEntry, projectMirror } from "../db/schema.js";
-import { embedAndIndex } from "../memory/embed.js";
+import { getDb } from "../db/client";
+import { memoryEntry, projectMirror } from "../db/schema";
+import { embedAndIndex } from "../memory/embed";
 
 export type MirrorSummary = {
   projectId: string;
