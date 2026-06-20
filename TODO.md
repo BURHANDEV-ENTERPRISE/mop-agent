@@ -32,7 +32,8 @@ Run live: set `BETTER_AUTH_SECRET` (32+) in `apps/web/.env`, then `npm run dev:w
 
 - **Fasa 3.5** — thin `mop-agent` CLI + cron (`croner`) + daemon (`serve`).
 - **Fasa 4** — ✅ done (consolidation + live write-back + approval).
-- **Fasa 4.5** — channels (Telegram `grammy` + Discord `discord.js`) → chat project from messaging.
+- **Fasa 4.5** — ✅ done (channels: Telegram `grammy` + Discord `discord.js`, channel↔project binding, commands /projects /use; grounded answers). Live bot needs a token (`TELEGRAM_BOT_TOKEN` / `DISCORD_BOT_TOKEN` in `.env`). smoke-channels PASS.
+- **Live-verified** — git repo init'd; real `npm run dev:web` end-to-end via curl: owner signup → link real project (reverse WSS) → grounded chat → write-back w/ approval persisted to project `.MOP/memory`. (Fixed: Next needs extensionless relative imports.)
 - **Fasa 5** — scheduled consolidation, skills registry, graph/canvas (React Flow).
 - **Fasa 6** — more channels, voice, sandboxing backends (Docker/SSH) for `runShell`/`editCode`.
 - **Fasa 7** — multi-user/team, Postgres option, cloud sync.
