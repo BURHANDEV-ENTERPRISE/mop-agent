@@ -1,0 +1,23 @@
+{
+  "name": "mop-agent-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "MOP-AGENT — self-hostable AI brain (control plane) + MOP-FLOW connector. Monorepo.",
+  "author": "BURHANDEV ENTERPRISE",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:web": "npm run dev --workspace @mop/web",
+    "dev:flow": "npm run dev --workspace @mop/flow-connector",
+    "clean": "node -e \"console.log('clean: remove dist + node_modules manually if needed')\""
+  }
+}

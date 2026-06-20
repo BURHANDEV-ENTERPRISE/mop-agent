@@ -1,0 +1,8 @@
+# Cross-platform line endings: normalize to LF in repo (Windows + Linux dev)
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary

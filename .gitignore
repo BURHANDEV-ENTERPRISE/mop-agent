@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+.next/
+out/
+build/
+
+# runtime data (Brain, DB, mirrors) — never commit
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# FLOW link credential (bearer token) — never commit
+**/.MOP/link.json
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
