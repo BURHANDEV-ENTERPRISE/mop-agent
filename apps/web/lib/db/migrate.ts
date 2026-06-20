@@ -52,6 +52,12 @@ CREATE TABLE IF NOT EXISTS semantic_note (
   created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS channel_binding (
+  channel_key TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS vec_map (
   rowid INTEGER PRIMARY KEY,
   ref_type TEXT NOT NULL,

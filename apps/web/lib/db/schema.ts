@@ -55,6 +55,13 @@ export const semanticNote = sqliteTable("semantic_note", {
   createdAt: integer("created_at").notNull(),
 });
 
+/** Binds a messaging channel/chat to a project (Fasa 4.5). channelKey = "platform:chatId". */
+export const channelBinding = sqliteTable("channel_binding", {
+  channelKey: text("channel_key").primaryKey(),
+  projectId: text("project_id").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 /** Maps a sqlite-vec rowid to the memory/semantic row it embeds. */
 export const vecMap = sqliteTable("vec_map", {
   rowid: integer("rowid").primaryKey(),
