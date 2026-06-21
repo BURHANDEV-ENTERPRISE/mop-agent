@@ -45,11 +45,10 @@ MOP-AGENT ${VERSION}
 
 Usage:
   npx mop-agent              Open the installer menu
-  npx mop-agent install      Install nginx and Certbot
-  npx mop-agent setup        Configure domain, HTTPS, app and systemd
+  npx mop-agent install      Install dependencies and complete setup
   npx mop-agent status       Show service health and file locations
   npx mop-agent update       Apply the npm version selected by npx
-  npx mop-agent uninstall    Remove service and nginx config
+  npx mop-agent delete       Remove service and nginx config
 
 Environment:
   MOP_AGENT_DIR              Durable app directory (default: ${DEFAULT_DIR})

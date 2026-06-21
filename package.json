@@ -1,6 +1,6 @@
 {
   "name": "mop-agent",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Self-hosted AI brain and control plane for MOP-FLOW projects, installed with npx mop-agent.",
   "author": "BURHANDEV ENTERPRISE",
   "license": "UNLICENSED",

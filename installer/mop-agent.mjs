@@ -3,11 +3,10 @@
  * MOP-AGENT installer / operator (TUI). Self-host with one command.
  *
  *   npx mop-agent            # interactive TUI
- *   npx mop-agent install    # install system deps (nginx/certbot)
- *   npx mop-agent setup      # domain / SQLite / ssl / systemd
+ *   npx mop-agent install    # dependencies + complete setup
  *   npx mop-agent update     # migrate + build + restart staged npm version
  *   npx mop-agent status     # health
- *   npx mop-agent uninstall  # remove service + nginx vhost (keeps data unless --purge)
+ *   npx mop-agent delete     # remove service + nginx vhost (keeps data unless --purge)
  *
  * Run as a normal user. Privileged OS operations request sudo individually.
  */
@@ -109,16 +108,16 @@ async function cmdInstall() {
   banner();
   const os = detectOS();
   if (!printInstallLocations(os)) return;
-  await maybeUpdateNpm();
   console.log(c("bold", "Installing system dependencies (nginx and Certbot)…\n"));
   runSteps(planInstallDeps(os), { privileged: true });
-  console.log(c("green", "\n✓ dependencies step complete. Next: mop-agent setup\n"));
+  console.log(c("green", "\n✓ dependencies installed. Continuing to application setup…\n"));
+  await cmdSetup({ continuation: true });
 }
 
-async function cmdSetup() {
-  banner();
+async function cmdSetup({ continuation = false } = {}) {
+  if (!continuation) banner();
   const os = detectOS();
-  if (!printInstallLocations(os)) return;
+  if (!continuation && !printInstallLocations(os)) return;
   const rl = createInterface({ input, output });
   const ask = async (q, def) => (await rl.question(c("cyan", `  ${q}${def ? c("gray", ` [${def}]`) : ""}: `))).trim() || def || "";
 
@@ -303,28 +302,6 @@ function randomToken(n) {
   return randomBytes(Math.ceil(n / 2)).toString("hex").slice(0, n);
 }
 
-async function maybeUpdateNpm() {
-  if (args["skip-npm-update"] || process.env.MOP_AGENT_SKIP_NPM_UPDATE === "1") return;
-  const current = run("npm --version", { capture: true }).stdout.trim();
-  const latestResult = run("npm view npm version", { capture: true, allowFailure: true });
-  const latest = latestResult.stdout.trim();
-  if (!latest || latest === current) {
-    console.log(c("green", `✓ npm ${current || "unknown"} is current\n`));
-    return;
-  }
-  const engineResult = run("npm view npm@latest engines.node", { capture: true, allowFailure: true });
-  const engine = engineResult.stdout.trim();
-  const rl = createInterface({ input, output });
-  const answer = (await rl.question(c("cyan", `  Update npm ${current} → ${latest}${engine ? ` (Node ${engine})` : ""}? [Y/n]: `))).trim().toLowerCase();
-  rl.close();
-  if (answer && !answer.startsWith("y")) {
-    console.log(c("gray", "  npm update skipped.\n"));
-    return;
-  }
-  run("npm install -g npm@latest", { privileged: true });
-  console.log(c("green", `✓ npm updated to ${latest}\n`));
-}
-
 function ensureRootServiceUser(os) {
   const user = "mop-agent";
   const create = os.family === "alpine"
@@ -340,11 +317,10 @@ async function tui() {
   if (DRY) console.log(c("yellow", "  Running in DRY-RUN (no changes).\n"));
   const rl = createInterface({ input, output });
   const menu = [
-    ["1", "install", "Install system deps (nginx and Certbot)"],
-    ["2", "setup", "Configure domain, SQLite, SSL, systemd service"],
+    ["1", "install", "Install (dependencies + complete setup)"],
+    ["2", "update", "Update MOP-AGENT + restart"],
     ["3", "status", "Show service health"],
-    ["4", "update", "Update to latest + restart"],
-    ["5", "uninstall", "Remove service + nginx vhost"],
+    ["4", "delete", "Delete service + nginx config"],
     ["q", "quit", "Exit"],
   ];
   for (const [k, , desc] of menu) console.log(`  ${c("cyan", k)}  ${desc}`);

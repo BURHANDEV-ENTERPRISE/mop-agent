@@ -5,10 +5,10 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.1` (`0.1.0` refused root/VPS invocation)
+- Package: `mop-agent@0.1.2` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: `0.1.0` is published; `0.1.1` is the pending root/VPS fix
+- npm registry status: `0.1.1` is published; `0.1.2` is the pending installer-flow fix
 - Tarball: 86 runtime files, about 94 kB compressed / 347 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
@@ -52,8 +52,10 @@
 - [x] Add `prepublishOnly` release checks.
 - [x] Patch 0.1.1: allow the common root VPS invocation while creating a
   dedicated non-root `mop-agent` system account for the running service.
-- [x] Patch 0.1.1: check for a newer npm during `install`, display its Node
-  requirement, and ask before applying the global npm update.
+- [x] Patch 0.1.2: remove global npm self-update after the real server test
+  showed that mutating npm from inside npx can corrupt the active npm install.
+- [x] Patch 0.1.2: reduce the TUI to Install, Update, Status, Delete; Install
+  performs dependencies and complete setup in one continuous flow.
 - [x] Give the service account ownership of SQLite/model data and the mode-0600
   environment file; place the local model cache below the data directory.
 - [x] Verify the real local tarball executable:
@@ -76,7 +78,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.1`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.2`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 

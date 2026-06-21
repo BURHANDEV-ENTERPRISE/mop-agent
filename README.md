@@ -5,8 +5,8 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** npm package `mop-agent@0.1.1` contains the root/VPS
-> installer fix. After publishing 0.1.1, the canonical installation command is
+> **Release status:** npm package `mop-agent@0.1.2` contains the corrected VPS
+> installer flow. After publishing 0.1.2, the canonical installation command is
 > exactly `npx mop-agent`.
 
 ## Current status
@@ -51,10 +51,14 @@ npx mop-agent
 ```
 
 The first run copies the npm-packaged runtime from the temporary npx cache into
-`/opt/mop-agent`, installs its dependencies, and opens the TUI. Choose
-`install` to install nginx/Certbot, then `setup` to configure the domain,
-SQLite database, HTTPS, and systemd service. The menu remains open between
-steps.
+`/opt/mop-agent`, installs its dependencies, and opens a four-action TUI:
+
+- `Install` — installs nginx/Certbot and immediately continues through the
+  complete domain, SQLite, HTTPS, and systemd setup.
+- `Update` — updates only MOP-AGENT, migrates/builds, and restarts it.
+- `Status` — reports service health and filesystem locations.
+- `Delete` — removes the service and nginx configuration while preserving data
+  unless purge is explicitly requested.
 
 During `setup`, choose one deployment mode:
 
@@ -72,10 +76,8 @@ needs to write under `/opt` or `/etc`, install OS packages, or control
 nginx/systemd. When launched as root, it creates a locked-down `mop-agent`
 system account and runs the web service under that account—not as root.
 
-During the `install` step, MOP-AGENT checks the installed npm version. If a
-newer npm is available it displays the version and Node.js requirement, then
-asks before running the global npm update. Set `MOP_AGENT_SKIP_NPM_UPDATE=1` to
-skip this check.
+MOP-AGENT never upgrades or modifies the system npm installation. npm and
+Node.js upgrades remain an explicit server-administration task.
 
 Subsequent operations use the same command:
 
