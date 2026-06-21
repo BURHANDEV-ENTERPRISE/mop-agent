@@ -1,5 +1,6 @@
 /** Provider-neutral chat interface. Adapters stream text deltas. */
-export type Msg = { role: "user" | "assistant"; content: string };
+export type ChatImage = { name: string; mimeType: string; dataUrl: string };
+export type Msg = { role: "user" | "assistant"; content: string; image?: ChatImage };
 
 export type ChatOptions = {
   system?: string;

@@ -1,6 +1,6 @@
 # MOP-AGENT — Release Handoff
 
-> Updated 2026-06-22 after the shared-shell navigation refresh. This file records what is
+> Updated 2026-06-22 after the workspace intelligence refresh. This file records what is
 > ready, the exact publish sequence, and the remaining production hardening.
 
 ## Current release snapshot
@@ -9,7 +9,8 @@
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
 - npm registry status: `0.1.15` is live; publish `0.1.16` after the release checks below
-- Tarball: 99 runtime files, about 167 kB compressed / 617 kB unpacked
+- Tarball: 104 controlled runtime files, 186,868 bytes compressed / 717,308
+  bytes unpacked (`npm pack --dry-run --json`, 2026-06-22)
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
@@ -141,6 +142,12 @@ MOP_AGENT_DIR="$HOME/mop-agent-registry-test" npx mop-agent status --dry-run
   `/etc/mop-agent` migration for a later major deployment layout.
 - [ ] Add native Windows service and macOS launchd support only if required;
   current production recommendation is Linux/WSL2.
+- [ ] Migrate the legacy local embedding dependency away from
+  `@xenova/transformers` when its maintained successor is adopted; the current
+  chain retains old `onnxruntime-web`/`protobufjs` advisories and cannot be
+  safely replaced with a forced transitive major override.
+- [ ] Recheck the Discord dependency chain when its maintained release updates
+  the vulnerable transitive `undici` line.
 
 ## Application backlog
 
@@ -222,25 +229,41 @@ Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `
 - [x] Keep Logout as an explicit action inside the drawer.
 - [x] Support close button, backdrop click, and Escape-key dismissal.
 
-## Answer: "dah lengkap ke?"
+## Workspace intelligence refresh (DONE — shipping in 0.1.16)
 
-Functionally **yes** for a single-node self-host (SQLite): install → setup →
-admin → providers/users → link project → grounded chat → consolidation →
-approval write-back → channels → execution backends. Status:
-1. **Publish** — ✅ `0.1.10` and `0.1.11` are live on npm, but `0.1.11` was
-   published from the pre-UI-fix bump commit, so the UI fixes are NOT on it.
-   `0.1.12` is bumped, tagged, and pushed and contains the UI fixes; publish it
-   with `npm publish --otp=<6-digit-code>` (npm 403s on re-publishing an
-   existing version, so the version must already be bumped — it is).
-2. **Two UI fixes** — ✅ done, shipping in 0.1.12 (see "UI fixes" above).
-3. **Production verification** checklist above (real VPS + DNS + Certbot reboot test).
-4. Deferred infra (only if scaling): PostgreSQL/pgvector, multi-instance cloud sync.
+- [x] Replace the basic Assistant textarea with an autosizing rich composer:
+  image attach/preview/remove, voice input, focused tool modes, Enter-to-send,
+  and busy/disabled states while retaining streaming and local chat history.
+- [x] Send attached images to Anthropic and OpenRouter as multimodal content;
+  validate payload size/type and tool modes in `/api/chat`.
+- [x] Make Main Brain the primary knowledge layer and redesign Brain around its
+  semantic patterns, linked projects, consolidation, pairing, and approvals.
+- [x] Add an Obsidian-inspired interactive Graph View with search, filters,
+  labels, dragging, zoom controls, minimap, and node inspector.
+- [x] Add encrypted admin-only Apps configuration for Telegram, Discord,
+  WhatsApp, Slack, and webhook; Telegram/Discord runtime reads stored tokens
+  when their environment variables are absent.
+- [x] Add WORKSPACE and ADMIN navigation sections, rename New chat to Chat,
+  and remove the unwanted divider between the brand and topbar.
+- [x] Add Tailwind 4/shadcn-compatible component structure and the Radix
+  primitives required by the rich composer.
+
+## Release readiness
+
+Functionally complete for a single-node SQLite self-host: install → one-time
+Admin setup → providers/users/apps → chat → optional project linking → grounded
+memory → consolidation → approvals → channel/execution backends. `0.1.16` is a
+release candidate until the production verification checklist above is completed.
+The repository is prepared for `npm publish`, but publishing remains a deliberate
+manual action after reviewing the final tarball.
 
 ## Install commands (also in README)
 
-- Linux (recommended): `curl -fsSL https://raw.githubusercontent.com/BURHANDEV-ENTERPRISE/mop-agent/main/install.sh | bash` or `sudo npx mop-agent`
-- macOS: dev only — `npx mop-agent` for local; production = Linux/WSL2.
-- Windows: use **WSL2** (Ubuntu) then the Linux command; native Windows not a production target.
+- Linux (recommended): exactly `npx mop-agent`; the installer requests privilege
+  only for protected OS operations.
+- macOS: development mode from the source checkout; production = Linux.
+- Windows: use **WSL2 Ubuntu** for the Linux installer, or development mode from
+  the source checkout; native Windows is not a production target.
 
 ## Filesystem locations (per OS — keep README + installer `installPaths()` in sync)
 

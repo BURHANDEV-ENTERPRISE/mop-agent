@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useMemoryCore } from "@/components/AppShell";
+import { PromptBox, type PromptSubmit } from "@/components/ui/chatgpt-prompt-input";
 
 type Turn = { role: "user" | "assistant"; content: string };
 type SavedChat = { id: string; title: string; turns: Turn[]; updatedAt: number };
@@ -87,13 +88,17 @@ export default function AssistantPage() {
     });
   }
 
-  async function send(prefill?: string) {
-    const message = (prefill ?? input).trim();
-    if (!message || busy) return;
+  async function send(request?: string | PromptSubmit) {
+    const payload: PromptSubmit = typeof request === "string"
+      ? { message: request, tool: null, image: null }
+      : request ?? { message: input, tool: null, image: null };
+    const message = payload.message.trim();
+    if ((!message && !payload.image) || busy) return false;
+    const visibleMessage = [message, payload.image ? `📎 ${payload.image.name}` : ""].filter(Boolean).join("\n");
     if (!activeChatId) setActiveChatId(`chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
     setInput("");
     setBusy(true);
-    setTurns((current) => [...current, { role: "user", content: message }, { role: "assistant", content: "" }]);
+    setTurns((current) => [...current, { role: "user", content: visibleMessage }, { role: "assistant", content: "" }]);
 
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -101,6 +106,8 @@ export default function AssistantPage() {
       body: JSON.stringify({
         message,
         allowCrossProject: true,
+        tool: payload.tool,
+        image: payload.image,
       }),
     });
 
@@ -112,7 +119,7 @@ export default function AssistantPage() {
         return next;
       });
       setBusy(false);
-      return;
+      return true;
     }
 
     const reader = res.body.getReader();
@@ -130,6 +137,7 @@ export default function AssistantPage() {
       endRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     setBusy(false);
+    return true;
   }
 
   return (
@@ -174,17 +182,7 @@ export default function AssistantPage() {
         </div>
 
         <div className="mop-assistant-composer-wrap">
-          <div style={composer}>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="Message MOP-AGENT…"
-              rows={1}
-              style={textarea}
-            />
-            <button onClick={() => send()} disabled={busy || !input.trim()} style={{ ...sendButton, opacity: busy || !input.trim() ? .45 : 1 }}>↑</button>
-          </div>
+          <PromptBox value={input} onValueChange={setInput} onSubmit={send} busy={busy} />
           <div style={{ textAlign: "center", color: "rgba(45,74,62,.62)", fontSize: 11, marginTop: 8 }}>
             {providerUsed ? `Answered by ${providerUsed} · ` : ""}Cross-project memory
           </div>
@@ -237,6 +235,3 @@ const promptGrid: CSSProperties = { width: "min(100%, 650px)", display: "grid", 
 const promptCard: CSSProperties = { display: "flex", justifyContent: "space-between", padding: "14px 15px", border: "1px solid rgba(45,74,62,.38)", borderBottomWidth: 3, background: "#fffdf2", color: "#2d4a3e", cursor: "pointer", textAlign: "left" };
 const botAvatar: CSSProperties = { width: 32, height: 32, display: "grid", placeItems: "center", background: "#742220", color: "#fef9e1" };
 const userAvatar: CSSProperties = { ...botAvatar, background: "#2d4a3e", fontSize: 12 };
-const composer: CSSProperties = { width: "min(calc(100% - 32px), 800px)", margin: "0 auto", display: "flex", alignItems: "flex-end", gap: 10, padding: "10px 10px 10px 15px", border: "1px solid rgba(45,74,62,.48)", borderBottomWidth: 4, background: "#fffdf2", boxShadow: "4px 4px 0 rgba(45,74,62,.13)" };
-const textarea: CSSProperties = { flex: 1, resize: "none", border: 0, outline: 0, boxShadow: "none", background: "transparent", color: "#2d4a3e", font: "inherit", lineHeight: 1.55, padding: "5px 0" };
-const sendButton: CSSProperties = { width: 34, height: 34, border: 0, background: "#742220", color: "#fef9e1", fontSize: 18, cursor: "pointer" };

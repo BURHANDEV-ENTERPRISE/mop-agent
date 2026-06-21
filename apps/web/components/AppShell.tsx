@@ -15,8 +15,8 @@ export type Project = { id: string; name: string; status: string };
 
 interface MemoryCoreContextType {
   projects: Project[];
-  settingsSection: "providers" | "users";
-  setSettingsSection: (section: "providers" | "users") => void;
+  settingsSection: "providers" | "users" | "apps";
+  setSettingsSection: (section: "providers" | "users" | "apps") => void;
 }
 
 const MemoryCoreContext = createContext<MemoryCoreContextType | undefined>(undefined);
@@ -43,7 +43,7 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accountDrawerOpen, setAccountDrawerOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [settingsSection, setSettingsSection] = useState<"providers" | "users">("providers");
+  const [settingsSection, setSettingsSection] = useState<"providers" | "users" | "apps">("providers");
   const isAdmin = viewer.role === "owner";
   const isSettings = pathname.startsWith("/settings");
   const title = pageTitle(pathname);
@@ -55,7 +55,7 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
       .catch(() => {});
 
     const requested = new URLSearchParams(window.location.search).get("section");
-    if (requested === "users") setSettingsSection("users");
+    if (requested === "users" || requested === "apps") setSettingsSection(requested);
     setSidebarCollapsed(window.localStorage.getItem("mop-agent-sidebar-collapsed") === "1");
   }, []);
 
@@ -73,9 +73,9 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
     window.location.replace("/login");
   }
 
-  function selectSection(section: "providers" | "users") {
+  function selectSection(section: "providers" | "users" | "apps") {
     setSettingsSection(section);
-    window.history.replaceState(null, "", section === "providers" ? "/settings" : "/settings?section=users");
+    window.history.replaceState(null, "", section === "providers" ? "/settings" : `/settings?section=${section}`);
   }
 
   function toggleSidebar() {
@@ -137,20 +137,27 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
                   <span className="mop-nav-icon">♙</span>
                   <span>Users</span>
                 </button>
+                <button className={settingsSection === "apps" ? "is-active" : ""} onClick={() => { selectSection("apps"); setMenuOpen(false); }}>
+                  <span className="mop-nav-icon">⌘</span>
+                  <span>Apps</span>
+                </button>
               </nav>
             </div>
           ) : (
             <>
-              <nav className="mop-sidebar-primary" aria-label="Workspace">
-                <a href="/assistant" className={pathname.startsWith("/assistant") || pathname.startsWith("/chat/") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
-                  <span className="mop-nav-icon">✎</span>
-                  <span>New chat</span>
-                </a>
-                <a href="/brain" className={pathname.startsWith("/brain") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
-                  <span className="mop-nav-icon">◉</span>
-                  <span>Brain</span>
-                </a>
-              </nav>
+              <div className="mop-nav-section mop-workspace-nav">
+                <p>WORKSPACE</p>
+                <nav className="mop-sidebar-primary" aria-label="Workspace">
+                  <a href="/assistant" className={pathname.startsWith("/assistant") || pathname.startsWith("/chat/") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
+                    <span className="mop-nav-icon">✎</span>
+                    <span>Chat</span>
+                  </a>
+                  <a href="/brain" className={pathname.startsWith("/brain") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
+                    <span className="mop-nav-icon">◉</span>
+                    <span>Brain</span>
+                  </a>
+                </nav>
+              </div>
 
               {isAdmin && (
                 <div className="mop-nav-section mop-admin-nav">

@@ -4,14 +4,18 @@
  */
 export async function startChannels(): Promise<string[]> {
   const started: string[] = [];
-  if (process.env.TELEGRAM_BOT_TOKEN) {
+  const { listEnabledAppConfigs } = await import("./config");
+  const configs = listEnabledAppConfigs();
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN ?? configs.find((config) => config.appId === "telegram")?.payload.secret;
+  const discordToken = process.env.DISCORD_BOT_TOKEN ?? configs.find((config) => config.appId === "discord")?.payload.secret;
+  if (telegramToken) {
     const { startTelegram } = await import("./telegram");
-    startTelegram(process.env.TELEGRAM_BOT_TOKEN);
+    startTelegram(telegramToken);
     started.push("telegram");
   }
-  if (process.env.DISCORD_BOT_TOKEN) {
+  if (discordToken) {
     const { startDiscord } = await import("./discord");
-    startDiscord(process.env.DISCORD_BOT_TOKEN);
+    startDiscord(discordToken);
     started.push("discord");
   }
   return started;

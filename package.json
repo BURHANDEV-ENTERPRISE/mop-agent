@@ -39,6 +39,8 @@
     "apps/web/.env.example",
     "apps/web/next-env.d.ts",
     "apps/web/next.config.mjs",
+    "apps/web/postcss.config.mjs",
+    "apps/web/components.json",
     "apps/web/package.json",
     "apps/web/server.ts",
     "apps/web/tsconfig.json",

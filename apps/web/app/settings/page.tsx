@@ -6,6 +6,16 @@ import { useMemoryCore } from "@/components/AppShell";
 
 type Masked = { configured: boolean; provider?: string; model?: string | null; keyHint?: string };
 type Member = { id: string; email: string; name: string; role: string };
+type AppId = "telegram" | "discord" | "whatsapp" | "slack" | "webhook";
+type AppConfig = { appId: AppId; configured: boolean; enabled: boolean; keyHint: string; updatedAt: number };
+
+const APP_CATALOG: Array<{ id: AppId; name: string; icon: string; description: string; secretLabel: string; fieldLabel: string; fieldKey: string; runtime: boolean }> = [
+  { id: "telegram", name: "Telegram", icon: "✈", description: "Private bot conversations and project-bound chats.", secretLabel: "Bot token", fieldLabel: "Bot username (optional)", fieldKey: "username", runtime: true },
+  { id: "discord", name: "Discord", icon: "◈", description: "Guild channels, direct messages and project replies.", secretLabel: "Bot token", fieldLabel: "Application ID (optional)", fieldKey: "applicationId", runtime: true },
+  { id: "whatsapp", name: "WhatsApp", icon: "◉", description: "Meta Cloud API account and phone-number configuration.", secretLabel: "Access token", fieldLabel: "Phone number ID", fieldKey: "phoneNumberId", runtime: false },
+  { id: "slack", name: "Slack", icon: "⌗", description: "Workspace bot configuration for future channel routing.", secretLabel: "Bot token", fieldLabel: "App ID", fieldKey: "appId", runtime: false },
+  { id: "webhook", name: "Webhook", icon: "↗", description: "Signed custom automation endpoint configuration.", secretLabel: "Signing secret", fieldLabel: "Endpoint URL", fieldKey: "endpoint", runtime: false },
+];
 
 export default function SettingsPage() {
   const { settingsSection: section } = useMemoryCore();
@@ -124,7 +134,7 @@ export default function SettingsPage() {
               </form>
               {providerMsg && <p style={messageStyle}>{providerMsg}</p>}
             </>
-          ) : (
+          ) : section === "users" ? (
             <>
               <div style={sectionHeading}>
                 <div>
@@ -165,10 +175,101 @@ export default function SettingsPage() {
                 {userMsg && <p style={messageStyle}>{userMsg}</p>}
               </div>
             </>
+          ) : (
+            <AppsSettings />
           )}
         </section>
       </div>
     </div>
+  );
+}
+
+function AppsSettings() {
+  const [configs, setConfigs] = useState<AppConfig[]>([]);
+  const [selected, setSelected] = useState<AppId>("telegram");
+  const [secret, setSecret] = useState("");
+  const [fieldValue, setFieldValue] = useState("");
+  const [enabled, setEnabled] = useState(true);
+  const [message, setMessage] = useState("");
+  const app = APP_CATALOG.find((item) => item.id === selected)!;
+  const current = configs.find((config) => config.appId === selected);
+
+  function loadApps() {
+    fetch("/api/apps").then((response) => response.json()).then((result) => setConfigs(result.apps ?? [])).catch(() => {});
+  }
+
+  useEffect(loadApps, []);
+
+  useEffect(() => {
+    setEnabled(current?.enabled ?? true);
+    setSecret("");
+    setFieldValue("");
+    setMessage("");
+  }, [selected, current?.enabled]);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    setMessage("Saving encrypted configuration…");
+    const response = await fetch("/api/apps", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        appId: selected,
+        secret: secret || undefined,
+        enabled,
+        fields: fieldValue ? { [app.fieldKey]: fieldValue } : undefined,
+      }),
+    });
+    const result = await response.json();
+    if (response.ok) {
+      setConfigs(result.apps ?? []);
+      setSecret("");
+      setFieldValue("");
+      setMessage(app.runtime ? "Saved. Restart MOP-AGENT to activate this bot runtime." : "Configuration saved securely. Runtime adapter will use it when enabled.");
+    } else {
+      setMessage(`Unable to save: ${result.error ?? response.status}`);
+    }
+  }
+
+  return (
+    <>
+      <div style={sectionHeading}>
+        <div><p className="mop-page-kicker">CHANNELS & INTEGRATIONS</p><h2 style={titleStyle}>Apps</h2></div>
+        <span style={statusBadge}>{configs.filter((config) => config.enabled).length} ENABLED</span>
+      </div>
+
+      <div className="mop-apps-layout">
+        <div className="mop-app-catalog">
+          {APP_CATALOG.map((item) => {
+            const config = configs.find((entry) => entry.appId === item.id);
+            return (
+              <button type="button" key={item.id} className={selected === item.id ? "is-active" : ""} onClick={() => setSelected(item.id)}>
+                <span>{item.icon}</span>
+                <div><strong>{item.name}</strong><small>{config?.configured ? (config.enabled ? "CONFIGURED · ENABLED" : "CONFIGURED · PAUSED") : "NOT CONFIGURED"}</small></div>
+                <i className={config?.enabled ? "is-online" : ""} />
+              </button>
+            );
+          })}
+        </div>
+
+        <form className="mop-app-config-panel" onSubmit={save}>
+          <header><span>{app.icon}</span><div><h3>{app.name}</h3><p>{app.description}</p></div></header>
+          <div className="mop-app-runtime-status">
+            <span className={app.runtime ? "is-ready" : ""} />
+            {app.runtime ? "Runtime adapter available" : "Configuration registry ready · adapter expansion planned"}
+          </div>
+          <label style={labelStyle}>{app.secretLabel}
+            <input type="password" required={!current?.configured} value={secret} onChange={(event) => setSecret(event.target.value)} placeholder={current?.configured ? `Saved key ${current.keyHint} · leave blank to keep` : `Enter ${app.secretLabel.toLowerCase()}`} style={inputStyle} />
+          </label>
+          <label style={labelStyle}>{app.fieldLabel}
+            <input value={fieldValue} onChange={(event) => setFieldValue(event.target.value)} placeholder={current?.configured ? "Leave blank to keep saved value" : app.fieldLabel} style={inputStyle} />
+          </label>
+          <label className="mop-app-enabled-toggle"><input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} /><span>Enable this integration</span></label>
+          <button type="submit" style={primaryButton}>SAVE {app.name.toUpperCase()}</button>
+          {message && <p style={messageStyle}>{message}</p>}
+        </form>
+      </div>
+    </>
   );
 }
 

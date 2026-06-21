@@ -80,6 +80,15 @@ CREATE TABLE IF NOT EXISTS provider_config (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS app_config (
+  owner_id TEXT NOT NULL,
+  app_id TEXT NOT NULL,
+  config_enc TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (owner_id, app_id)
+);
+
 CREATE TABLE IF NOT EXISTS skill (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,

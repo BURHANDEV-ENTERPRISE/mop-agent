@@ -8,12 +8,22 @@ export function openRouterProvider(apiKey: string, model = "anthropic/claude-son
     id: "openrouter",
     model,
     async *chat({ system, messages }: ChatOptions) {
+      const openRouterMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = messages.map((message) => {
+        if (!message.image || message.role !== "user") return { role: message.role, content: message.content };
+        return {
+          role: "user",
+          content: [
+            { type: "text", text: message.content || "Describe and help with this image." },
+            { type: "image_url", image_url: { url: message.image.dataUrl } },
+          ],
+        };
+      });
       const stream = await client.chat.completions.create({
         model,
         stream: true,
         messages: [
           ...(system ? ([{ role: "system" as const, content: system }]) : []),
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
+          ...openRouterMessages,
         ],
       });
       for await (const chunk of stream) {

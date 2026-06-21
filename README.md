@@ -6,16 +6,24 @@ consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
 > **Release status:** release candidate `mop-agent@0.1.16` contains the corrected VPS
-> installer, one-time Admin setup/login flow, and simplified shared application shell
-> with centered page titles and ChatGPT-inspired navigation.
+> installer, one-time Admin setup/login flow, rich Assistant composer, Main Brain
+> workspace, Obsidian-inspired Graph View, and encrypted Apps settings.
 > The canonical installation command is exactly `npx mop-agent`.
 
 ## Current status
 
 The application core through Fasa 7 foundation is implemented: reverse-WSS
 project links, SQLite + sqlite-vec storage, Better Auth, semantic recall,
-admin-only provider/user settings, consolidation, approval-based write-back,
-Telegram and Discord adapters, skills, graph UI, execution backends, and user invites.
+admin-only provider/user/app settings, consolidation, approval-based write-back,
+Telegram and Discord adapters, skills, graph UI, execution backends, and user accounts.
+
+The Assistant supports an autosizing prompt, image attachment/preview, voice input
+(when the browser exposes Web Speech), and focused tool modes. Anthropic and
+OpenRouter receive attached images as multimodal input. Brain treats Main Brain as
+the primary knowledge layer and provides an interactive, searchable Graph View.
+Telegram and Discord credentials can be stored encrypted under **Settings → Apps**;
+their adapters become active after the service restarts. WhatsApp, Slack, and generic
+webhook configuration can be stored there now while their runtime adapters remain planned.
 
 The npm bootstrap stages the packaged application durably at `/opt/mop-agent`,
 uses the proven SQLite + sqlite-vec backend, and asks for sudo only for specific
