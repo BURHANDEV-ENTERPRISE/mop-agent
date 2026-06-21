@@ -5,10 +5,9 @@
  * AGENT claims a write was "approved", FLOW re-checks the capability (and, for
  * writes, a valid session) before doing anything. Defense in depth.
  */
-import { readFile, writeFile, mkdir, appendFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir, appendFile, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   DEFAULT_EXECUTION_POLICY,
   isReadTool,
@@ -54,11 +53,11 @@ export async function handleToolRequest(
     case "read_artifact":
       return readText(join(ctx.projectRoot, ".MOP", "artifacts", String(args.path)));
     case "list_artifacts":
-      return { note: "TODO: reuse snapshot.listArtifacts" };
+      return listArtifacts(ctx.projectRoot);
     case "workflow_status":
-      return { note: "TODO: read workflow block from STATE.json" };
+      return workflowStatus(ctx.projectRoot);
     case "search_project_context":
-      return { note: "TODO: local keyword/semantic search", query: args.query };
+      return searchContext(ctx.projectRoot, String(args.query ?? ""));
     case "append_memory":
       return appendMemory(ctx.projectRoot, args);
     case "write_artifact":
@@ -138,6 +137,52 @@ async function writeArtifact(projectRoot: string, relPath: string, content: stri
   await mkdir(dirname(p), { recursive: true });
   await writeFile(p, content, "utf8");
   return { ok: true, path: relPath };
+}
+
+async function listArtifacts(projectRoot: string): Promise<Array<{ path: string; updatedAt: number; size: number }>> {
+  const dir = join(projectRoot, ".MOP", "artifacts");
+  if (!existsSync(dir)) return [];
+  const out: Array<{ path: string; updatedAt: number; size: number }> = [];
+  const walk = async (d: string, base: string): Promise<void> => {
+    for (const name of await readdir(d)) {
+      const full = join(d, name);
+      const s = await stat(full);
+      if (s.isDirectory()) await walk(full, join(base, name));
+      else out.push({ path: join(base, name), updatedAt: s.mtimeMs, size: s.size });
+    }
+  };
+  await walk(dir, "");
+  return out;
+}
+
+async function workflowStatus(projectRoot: string): Promise<unknown> {
+  const p = join(projectRoot, ".MOP", "STATE.json");
+  if (!existsSync(p)) return { workflow: null };
+  const state = JSON.parse(await readFile(p, "utf8")) as { workflow?: unknown };
+  return { workflow: state.workflow ?? null };
+}
+
+async function searchContext(projectRoot: string, query: string): Promise<Array<{ id: string; summary: string; score: number }>> {
+  const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length >= 2);
+  if (!terms.length) return [];
+  const dir = join(projectRoot, ".MOP", "memory");
+  if (!existsSync(dir)) return [];
+  const hits: Array<{ id: string; summary: string; score: number }> = [];
+  for (const f of (await readdir(dir)).filter((f) => f.endsWith(".jsonl"))) {
+    for (const line of (await readFile(join(dir, f), "utf8")).split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      try {
+        const m = JSON.parse(t) as { id: string; summary?: string; body?: string };
+        const hay = `${m.summary ?? ""} ${m.body ?? ""}`.toLowerCase();
+        const score = terms.reduce((s, term) => s + (hay.includes(term) ? 1 : 0), 0);
+        if (score > 0) hits.push({ id: m.id, summary: m.summary ?? "", score });
+      } catch {
+        /* skip */
+      }
+    }
+  }
+  return hits.sort((a, b) => b.score - a.score).slice(0, 20);
 }
 
 /** edit_code: write a project source file, refusing paths that escape the project root. */

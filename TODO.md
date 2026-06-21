@@ -24,7 +24,7 @@ Run live: set `BETTER_AUTH_SECRET` (32+) in `apps/web/.env`, then `npm run dev:w
 - [ ] **.env** — generate real `BETTER_AUTH_SECRET` (32+) + `MOP_AGENT_SECRET` (fix low-entropy warning).
 - [x] **provider_config** — ✅ per-owner encrypted keys (AES-256-GCM via `MOP_AGENT_SECRET`) + `/settings` UI + `/api/providers`; `resolveProvider` reads DB first (env/echo fallback). smoke-providers PASS.
 - [x] **Real embedder** — ✅ local MiniLM (`@xenova/transformers`, 384d) as default with dummy fallback (`MOP_AGENT_EMBEDDER=dummy` to force). Recall is now semantic (smoke-embedder PASS: paraphrased query ranks the right memory with ~zero shared keywords).
-- [ ] **flow-connector → real `.MOP`** — wire `hasValidSession` to mop-flow v1.2.0 session model; finish `list_artifacts`/`workflow_status`/`search_project_context`/`workflow_next` stubs in `tools.ts`.
+- [~] **flow-connector → real `.MOP`** — ✅ `list_artifacts` / `workflow_status` / `search_project_context` implemented (smoke-flowtools PASS). Remaining: wire `hasValidSession` to mop-flow v1.2.0 session model; `workflow_next` (needs mop-flow's workflow engine on merge).
 - [ ] **Production data dir** — set `MOP_AGENT_USE_OS_DIR=1` for installed/Docker runs.
 - [ ] **Live browser test** — full setup→link→chat flow via real `npm run dev:web` (not just smoke scripts).
 
