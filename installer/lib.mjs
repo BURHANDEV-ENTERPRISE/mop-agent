@@ -32,23 +32,19 @@ export function detectOS() {
   if (/debian|ubuntu|kali|mint/.test(hay)) {
     family = "debian";
     pkg = { update: "apt-get update -y", install: "DEBIAN_FRONTEND=noninteractive apt-get install -y",
-      pkgs: { postgres: "postgresql", nginx: "nginx", certbot: "certbot python3-certbot-nginx" },
-      pgService: "postgresql", pgInit: null };
+      pkgs: { nginx: "nginx", certbot: "certbot python3-certbot-nginx" } };
   } else if (/rhel|fedora|centos|rocky|alma/.test(hay)) {
     family = "rhel";
     pkg = { update: "dnf -y makecache", install: "dnf install -y",
-      pkgs: { postgres: "postgresql-server", nginx: "nginx", certbot: "certbot python3-certbot-nginx" },
-      pgService: "postgresql", pgInit: "postgresql-setup --initdb" };
+      pkgs: { nginx: "nginx", certbot: "certbot python3-certbot-nginx" } };
   } else if (/arch|manjaro/.test(hay)) {
     family = "arch";
     pkg = { update: "pacman -Sy --noconfirm", install: "pacman -S --noconfirm",
-      pkgs: { postgres: "postgresql", nginx: "nginx", certbot: "certbot certbot-nginx" },
-      pgService: "postgresql", pgInit: "sudo -u postgres initdb -D /var/lib/postgres/data" };
+      pkgs: { nginx: "nginx", certbot: "certbot certbot-nginx" } };
   } else if (/alpine/.test(hay)) {
     family = "alpine";
     pkg = { update: "apk update", install: "apk add",
-      pkgs: { postgres: "postgresql", nginx: "nginx", certbot: "certbot certbot-nginx" },
-      pgService: "postgresql", pgInit: null };
+      pkgs: { nginx: "nginx", certbot: "certbot certbot-nginx" } };
   }
   return { platform: plat, distro: id || "linux", pretty, family, pkg };
 }
@@ -76,12 +72,45 @@ server {
 `;
 }
 
+/** nginx TLS vhost used after Certbot's standalone fallback. */
+export function renderNginxTlsVhost({ domain, port }) {
+  return `# Managed by MOP-AGENT installer
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${domain};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name ${domain};
+
+    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:${port};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+}
+`;
+}
+
 /** systemd unit — auto-start on boot + restart on crash. */
 export function renderSystemdUnit({ appDir, port, user = "root", npm = "npm" }) {
   return `# Managed by MOP-AGENT installer
 [Unit]
 Description=MOP-AGENT (self-hostable AI brain)
-After=network.target postgresql.service
+After=network.target
 
 [Service]
 Type=simple
@@ -106,24 +135,10 @@ export function planInstallDeps(os) {
   if (!os.pkg) return [];
   const p = os.pkg;
   const steps = [{ label: "Refresh package index", cmd: p.update }];
-  steps.push({ label: "Install PostgreSQL", cmd: `${p.install} ${p.pkgs.postgres}` });
-  if (p.pgInit) steps.push({ label: "Initialize PostgreSQL data dir", cmd: p.pgInit });
-  steps.push({ label: "Enable + start PostgreSQL", cmd: `systemctl enable --now ${p.pgService}` });
   steps.push({ label: "Install nginx", cmd: `${p.install} ${p.pkgs.nginx}` });
   steps.push({ label: "Enable + start nginx", cmd: "systemctl enable --now nginx" });
   steps.push({ label: "Install certbot", cmd: `${p.install} ${p.pkgs.certbot}` });
   return steps;
-}
-
-/** Planned steps to create the Postgres role + database. */
-export function planDbSetup({ dbName, dbUser, dbPass }) {
-  const sql = [
-    `CREATE USER ${dbUser} WITH PASSWORD '${dbPass}';`,
-    `CREATE DATABASE ${dbName} OWNER ${dbUser};`,
-  ].join(" ");
-  return [
-    { label: `Create DB role + database (${dbName})`, cmd: `sudo -u postgres psql -v ON_ERROR_STOP=0 -c "${sql}"` },
-  ];
 }
 
 /** SSL via certbot with a fallback when :80 is busy. Returns ordered attempts. */
@@ -142,6 +157,19 @@ export function planSsl({ domain, email }) {
 
 /** What is listening on :80 (for the fallback scan). */
 export const PORT80_SCAN = "ss -ltnp 'sport = :80' 2>/dev/null || lsof -i :80 2>/dev/null || true";
+
+export function isValidDomain(value) {
+  return /^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/.test(value);
+}
+
+export function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !/["'`;|&<>$()]/.test(value);
+}
+
+export function isValidPort(value) {
+  const port = Number(value);
+  return /^\d+$/.test(String(value)) && Number.isInteger(port) && port >= 1 && port <= 65535;
+}
 
 /** nginx config location differs by distro (debian uses sites-available/enabled). */
 export function nginxPaths(family) {

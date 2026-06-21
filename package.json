@@ -1,10 +1,24 @@
 {
-  "name": "mop-agent-monorepo",
-  "version": "0.0.1",
-  "private": true,
-  "description": "MOP-AGENT — self-hostable AI brain (control plane) + MOP-FLOW connector. Monorepo.",
+  "name": "mop-agent",
+  "version": "0.1.0",
+  "description": "Self-hosted AI brain and control plane for MOP-FLOW projects, installed with npx mop-agent.",
   "author": "BURHANDEV ENTERPRISE",
   "license": "UNLICENSED",
+  "keywords": [
+    "ai",
+    "agent",
+    "memory",
+    "self-hosted",
+    "mop-flow"
+  ],
+  "homepage": "https://github.com/BURHANDEV-ENTERPRISE/mop-agent#readme",
+  "bugs": {
+    "url": "https://github.com/BURHANDEV-ENTERPRISE/mop-agent/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BURHANDEV-ENTERPRISE/mop-agent.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -14,7 +28,34 @@
     "apps/*"
   ],
   "bin": {
-    "mop-agent": "installer/mop-agent.mjs"
+    "mop-agent": "installer/bootstrap.mjs"
+  },
+  "files": [
+    "apps/web/app",
+    "apps/web/bin",
+    "apps/web/lib",
+    "apps/web/scripts",
+    "apps/web/.env.example",
+    "apps/web/next-env.d.ts",
+    "apps/web/next.config.mjs",
+    "apps/web/package.json",
+    "apps/web/server.ts",
+    "apps/web/tsconfig.json",
+    "packages/flow-connector/bin",
+    "packages/flow-connector/src",
+    "packages/flow-connector/package.json",
+    "packages/flow-connector/tsconfig.json",
+    "packages/link-protocol/src",
+    "packages/link-protocol/package.json",
+    "packages/link-protocol/tsconfig.json",
+    "installer/bootstrap.mjs",
+    "installer/lib.mjs",
+    "installer/mop-agent.mjs",
+    "npm-shrinkwrap.json",
+    "tsconfig.base.json"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
@@ -22,6 +63,9 @@
     "dev:web": "npm run dev --workspace @mop/web",
     "dev:flow": "npm run dev --workspace @mop/flow-connector",
     "installer": "node installer/mop-agent.mjs",
+    "bootstrap:self-test": "node installer/bootstrap.mjs --self-test",
+    "release:check": "npm run typecheck && npx tsx scripts/smoke-installer.mts && npm run bootstrap:self-test",
+    "prepublishOnly": "npm run release:check",
     "clean": "node -e \"console.log('clean: remove dist + node_modules manually if needed')\""
   }
 }

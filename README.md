@@ -5,10 +5,9 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Pre-release warning:** MOP-AGENT is not published on npm yet. Do not use
-> `npx mop-agent` for a production installation until the npm-readiness items in
-> [`TODO.md`](TODO.md) are complete. The current stable installation path is a
-> source checkout for development and testing.
+> **Release status:** npm package `mop-agent@0.1.0` is prepared but may not have
+> been published yet. After publication, the canonical installation command is
+> exactly `npx mop-agent`.
 
 ## Current status
 
@@ -17,10 +16,10 @@ project links, SQLite + sqlite-vec storage, Better Auth, semantic recall,
 provider settings, consolidation, approval-based write-back, Telegram and
 Discord adapters, skills, graph UI, execution backends, and team invites.
 
-The production installer exists, but is still **release-candidate quality**.
-Known blockers include durable `npx` installation, the PostgreSQL/SQLite
-mismatch, non-root service ownership, SSL fallback completion, and live VPS
-verification. See [`TODO.md`](TODO.md) for the release gate.
+The npm bootstrap stages the packaged application durably at `/opt/mop-agent`,
+uses the proven SQLite + sqlite-vec backend, and asks for sudo only for specific
+OS operations. Package, bootstrap, installer, and smoke verification pass
+locally. A clean VPS installation remains the final production verification.
 
 ## Platform support
 
@@ -36,33 +35,38 @@ The automated installer depends on Linux facilities such as `systemd`, nginx,
 Certbot, and standard Linux filesystem paths. Native Windows services/IIS and
 macOS launchd/Homebrew automation have not been implemented.
 
-## Linux production installation (after release gate)
+## Linux installation
 
 Prerequisites:
 
 - A Linux VPS with root/sudo access
-- Node.js 20 or newer, npm, and Git
+- Node.js 20 or newer and npm
 - A domain with an `A`/`AAAA` record pointing to the server
 - Inbound ports 80 and 443 allowed by the firewall/security group
 
-The intended one-command flows are:
+Run as your normal user:
 
 ```bash
-# Option A: clone the durable installation into /opt/mop-agent
-curl -fsSL https://raw.githubusercontent.com/BURHANDEV-ENTERPRISE/mop-agent/main/install.sh | sudo bash
-
-# Option B: official npm experience after the release gate
 npx mop-agent
 ```
 
-The TUI separates system dependency installation from application setup. Run
-both `install` and `setup` when prompted. Until the P0 installer tasks are
-complete, treat these commands as testing instructions, not a production SLA.
+The first run copies the npm-packaged runtime from the temporary npx cache into
+`/opt/mop-agent`, installs its dependencies, and opens the TUI. Choose
+`install` to install nginx/Certbot, then `setup` to configure the domain,
+SQLite database, HTTPS, and systemd service. The menu remains open between
+steps.
 
-`npx mop-agent` is the canonical user command. It must run initially as the
-normal user and request `sudo` only for privileged operations such as writing
-to `/opt` or `/etc`, installing OS packages, and controlling systemd. Do not
-run the entire npm/npx process with `sudo`.
+The installer requests `sudo` only when it needs to write under `/opt` or
+`/etc`, install OS packages, or control nginx/systemd. Do not run the entire
+npm/npx process with `sudo`.
+
+Subsequent operations use the same command:
+
+```bash
+npx mop-agent status
+npx mop-agent update
+npx mop-agent uninstall
+```
 
 ### Linux filesystem map
 
@@ -80,10 +84,9 @@ so it uses `/opt/mop-agent` rather than `/var/www` for application code.
 | TLS certificates | `/etc/letsencrypt/live/<domain>/` | same |
 | Service logs | `journalctl -u mop-agent -f` | same |
 
-`MOP_AGENT_DIR` can override `/opt/mop-agent` for the curl installer. The final
-production layout may move mutable data to `/var/lib/mop-agent` and secrets to
-`/etc/mop-agent/mop-agent.env`; that decision is a P0 release task and must be
-implemented, migrated, tested, and reflected here before npm publication.
+`MOP_AGENT_DIR` can override `/opt/mop-agent`. Updates preserve
+`apps/web/.env` and `data/`; uninstall preserves SQLite brain data unless the
+user explicitly passes `--purge`.
 
 Useful operations after setup:
 
@@ -98,7 +101,7 @@ sudo systemctl reload nginx
 
 ### Recommended: WSL2
 
-Install Ubuntu under WSL2, enable systemd in WSL, then follow the Linux flow
+Install Ubuntu under WSL2, enable systemd in WSL, then run `npx mop-agent`
 inside the WSL terminal. All paths such as `/opt/mop-agent` and `/etc/nginx/...`
 exist inside the WSL filesystem, not under `C:\Program Files`.
 
