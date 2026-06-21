@@ -5,11 +5,11 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.13` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.14` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: publish `0.1.13` after the release checks below
-- Tarball: 99 runtime files, about 164 kB compressed / 600 kB unpacked
+- npm registry status: `0.1.13` is live; publish `0.1.14` after the release checks below
+- Tarball: 99 runtime files, about 165 kB compressed / 606 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
@@ -106,7 +106,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.13`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.14`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 
@@ -197,6 +197,14 @@ Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `
 - [x] Keep the Assistant welcome content centered and responsive in the main pane.
 - [x] Verify with TypeScript, a production Next.js build, and authenticated
   production-DOM assertions for both removed and required elements.
+
+## Assistant history correction (DONE — shipping in 0.1.14)
+
+- [x] Remove the incorrect `PROJECT MEMORY` block from the shared sidebar.
+- [x] Restore the dedicated Settings sidebar with Providers, Users, and Back to Workspace.
+- [x] Keep the MOP-AGENT logo linked to `/assistant` as the application home action.
+- [x] Add a functional right-side chat history panel to Assistant with local persistence,
+  conversation restore, delete, and new-chat actions.
 
 ## Answer: "dah lengkap ke?"
 
