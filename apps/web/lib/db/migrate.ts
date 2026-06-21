@@ -58,6 +58,20 @@ CREATE TABLE IF NOT EXISTS channel_binding (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS app_role (
+  user_id TEXT PRIMARY KEY,
+  role TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invite (
+  email TEXT PRIMARY KEY,
+  role TEXT NOT NULL DEFAULT 'member',
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER,
+  invited_by TEXT,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS provider_config (
   owner_id TEXT PRIMARY KEY,
   provider TEXT NOT NULL,

@@ -62,6 +62,22 @@ export const channelBinding = sqliteTable("channel_binding", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+/** App role per Better Auth user (Fasa 7 team). owner | member. */
+export const appRole = sqliteTable("app_role", {
+  userId: text("user_id").primaryKey(),
+  role: text("role").notNull(), // "owner" | "member"
+});
+
+/** Email-scoped invite — owner invites a specific email to join. */
+export const invite = sqliteTable("invite", {
+  email: text("email").primaryKey(),
+  role: text("role").notNull().default("member"),
+  expiresAt: integer("expires_at").notNull(),
+  usedAt: integer("used_at"),
+  invitedBy: text("invited_by"),
+  createdAt: integer("created_at").notNull(),
+});
+
 /** Per-owner AI provider config; apiKeyEnc is AES-256-GCM encrypted at rest. */
 export const providerConfig = sqliteTable("provider_config", {
   ownerId: text("owner_id").primaryKey(),
