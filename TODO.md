@@ -5,10 +5,10 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.2` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.3` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: `0.1.1` is published; `0.1.2` is the pending installer-flow fix
+- npm registry status: publish `0.1.3` after the release checks below
 - Tarball: 86 runtime files, about 94 kB compressed / 347 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
@@ -56,6 +56,12 @@
   showed that mutating npm from inside npx can corrupt the active npm install.
 - [x] Patch 0.1.2: reduce the TUI to Install, Update, Status, Delete; Install
   performs dependencies and complete setup in one continuous flow.
+- [x] Patch 0.1.3: replace the stale Fasa 1 root page with a server-side
+  Admin setup/login gate and authenticated page guards.
+- [x] Patch 0.1.3: make Assistant the product home; allow chat without a linked
+  project while retaining optional all-project or project-specific memory.
+- [x] Patch 0.1.3: redirect a newly-created Admin directly into Assistant and
+  document the first-run browser journey.
 - [x] Give the service account ownership of SQLite/model data and the mode-0600
   environment file; place the local model cache below the data directory.
 - [x] Verify the real local tarball executable:
@@ -78,7 +84,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.2`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.3`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 

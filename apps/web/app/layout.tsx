@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export const metadata = {
   title: "MOP-AGENT",
-  description: "Self-hostable AI brain — remembers everything, federates every project.",
+  description: "Self-hosted AI assistant with persistent, cross-project memory.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

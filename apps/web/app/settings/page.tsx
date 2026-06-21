@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px" }}>
-      <a href="/brain" style={{ color: "#7aa2ff" }}>← Brain</a>
+      <a href="/assistant" style={{ color: "#7aa2ff" }}>← Assistant</a>
       <h1 style={{ fontSize: 24 }}>⚙️ Provider settings</h1>
 
       <div style={{ border: "1px solid #1f2a3a", borderRadius: 8, padding: 14, margin: "12px 0", opacity: 0.9 }}>

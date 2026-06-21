@@ -52,7 +52,8 @@ export class ContextPack {
 
 export type RecallOptions = {
   query: string;
-  projectId: string;
+  /** Omit for the main assistant, which recalls shared/all-project memory. */
+  projectId?: string;
   allowCrossProject?: boolean;
   k?: number;
 };
@@ -71,7 +72,7 @@ export async function recall(opts: RecallOptions): Promise<ContextPack> {
     : [];
   const order = new Map(hits.map((h, i) => [h.refId, i]));
   const episodic: RecalledMemory[] = episodicRows
-    .filter((m) => m.projectId === opts.projectId || opts.allowCrossProject === true)
+    .filter((m) => opts.allowCrossProject === true || (!!opts.projectId && m.projectId === opts.projectId))
     .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
     .map((m) => ({
       id: m.id,

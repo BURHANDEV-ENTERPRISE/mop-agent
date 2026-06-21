@@ -5,8 +5,8 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** npm package `mop-agent@0.1.2` contains the corrected VPS
-> installer flow. After publishing 0.1.2, the canonical installation command is
+> **Release status:** npm package `mop-agent@0.1.3` contains the corrected VPS
+> installer and first-run Admin/Assistant flow. The canonical installation command is
 > exactly `npx mop-agent`.
 
 ## Current status
@@ -59,6 +59,17 @@ The first run copies the npm-packaged runtime from the temporary npx cache into
 - `Status` — reports service health and filesystem locations.
 - `Delete` — removes the service and nginx configuration while preserving data
   unless purge is explicitly requested.
+
+After installation, open the configured URL in a browser. The application flow
+is intentionally separate from the server installer:
+
+1. On a fresh database, `/` redirects to **Create Admin account**.
+2. Creating the first Admin also signs that account in.
+3. Returning users are shown the login form.
+4. Successful setup/login opens the main **Assistant**. It can be used before
+   any project is linked; Brain is the optional memory/project control surface.
+5. Add OpenRouter or Anthropic under **Providers** for full model responses.
+   Until then, the built-in offline echo provider confirms the chat pipeline.
 
 During `setup`, choose one deployment mode:
 
@@ -139,7 +150,7 @@ npm run typecheck
 npm run dev:web
 ```
 
-Open `http://localhost:3000/setup`. Native Windows production service and HTTPS
+Open `http://localhost:3000`; it redirects to Admin setup on first run. Native Windows production service and HTTPS
 automation remain TODO; do not use `sudo` in PowerShell or Command Prompt.
 
 ## macOS
@@ -155,7 +166,7 @@ npm run typecheck
 npm run dev:web
 ```
 
-Open `http://localhost:3000/setup`. A launchd/Homebrew/nginx production
+Open `http://localhost:3000`; it redirects to Admin setup on first run. A launchd/Homebrew/nginx production
 installer is not implemented; use a supported Linux VPS for production.
 
 ## Development

@@ -44,10 +44,16 @@ async function main() {
   // NOTE: ranking quality is the real embedder's job (backlog). Here we verify the
   // plumbing: the auth memory is recalled (present), and the answer is grounded.
   const hasAuthMemory = pack.episodic.some((m) => /per-session|auth gate|authenticat/i.test(m.summary));
+  const centralPack = await recall({
+    query: "how does the authentication gate work?",
+    allowCrossProject: true,
+  });
+  const centralAssistantWorksWithoutProject = centralPack.episodic.some((m) => m.id === "m1");
   const ok =
     pack.episodic.length > 0 &&
     !!top &&
     hasAuthMemory &&
+    centralAssistantWorksWithoutProject &&
     /auth|per-session|memory/i.test(answer);
 
   console.log(`\n[test] ${ok ? "PASS ✅" : "FAIL ❌"}`);
