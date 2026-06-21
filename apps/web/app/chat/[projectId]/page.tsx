@@ -71,7 +71,7 @@ export default function ChatPage({ params }: { params: Promise<{ projectId: stri
   }
 
   return (
-    <main style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", height: "90vh" }}>
+    <main style={{ maxWidth: 860, margin: "0 auto", padding: "28px 24px", display: "flex", flexDirection: "column", height: "calc(100vh - 70px)" }}>
       <a href={`/brain/${projectId}`} style={{ color: "#742220" }}>← {projectId}</a>
       <h1 style={{ fontSize: 20 }}>💬 Chat · {projectId}</h1>
 

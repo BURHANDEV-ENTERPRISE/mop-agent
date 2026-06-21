@@ -16,7 +16,7 @@ export default function ProjectBrainPage({ params }: { params: Promise<{ project
   }, [projectId]);
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
+    <main className="mop-page">
       <a href="/brain" style={{ color: "#742220" }}>← Brain</a>
       <h1 style={{ fontSize: 24 }}>{projectId}</h1>
       <a href={`/chat/${projectId}`} style={{ color: "#742220" }}>💬 Chat with this project →</a>

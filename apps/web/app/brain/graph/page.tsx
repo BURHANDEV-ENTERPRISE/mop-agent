@@ -37,7 +37,7 @@ export default function GraphPage() {
   );
 
   return (
-    <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <main style={{ height: "calc(100vh - 70px)", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "12px 16px" }}>
         <a href="/brain" style={{ color: "#742220" }}>← Brain</a>{" "}
         <strong>Knowledge Graph</strong>{" "}

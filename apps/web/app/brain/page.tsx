@@ -67,14 +67,15 @@ export default function BrainPage() {
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
-      <p style={{ margin: 0 }}><a href="/assistant" style={{ color: "#742220" }}>← Assistant</a></p>
-      <h1 style={{ fontSize: 24 }}>🧠 Brain</h1>
-      <p style={{ opacity: 0.65 }}>
-        Main Brain + linked project brains. <a href="/brain/graph" style={{ color: "#742220" }}>🕸 Knowledge graph →</a>{" "}
-        <a href="/settings" style={{ color: "#742220" }}>⚙️ Settings →</a>{" "}
-        <a href="/team" style={{ color: "#742220" }}>👥 Team →</a>
-      </p>
+    <main className="mop-page">
+      <header className="mop-page-heading">
+        <div>
+          <p className="mop-page-kicker">PERSISTENT MEMORY</p>
+          <h1>Brain</h1>
+          <p>Main Brain and every linked project memory in one place.</p>
+        </div>
+        <a href="/brain/graph" style={{ ...btn, textDecoration: "none" }}>KNOWLEDGE GRAPH →</a>
+      </header>
 
       <div style={{ margin: "20px 0", display: "flex", gap: 12, alignItems: "center" }}>
         <button onClick={genCode} style={btn}>+ Link project</button>
@@ -85,7 +86,7 @@ export default function BrainPage() {
         )}
       </div>
 
-      <section style={{ margin: "8px 0 24px", border: "1px solid rgba(45,74,62,.28)", borderRadius: 8, padding: 16, background: "#fffdf2" }}>
+      <section className="mop-panel" style={{ margin: "8px 0 24px", padding: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <h2 style={{ fontSize: 16, margin: 0, opacity: 0.85 }}>🌐 Main Brain ({notes.length})</h2>
           <button onClick={runConsolidate} disabled={consolidating} style={{ ...btn, background: "#2d4a3e", borderColor: "#2d4a3e" }}>

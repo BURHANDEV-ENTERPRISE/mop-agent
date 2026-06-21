@@ -1,6 +1,6 @@
 {
   "name": "mop-agent",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Self-hosted AI assistant with persistent cross-project memory, installed with npx mop-agent.",
   "author": "BURHANDEV ENTERPRISE",
   "license": "UNLICENSED",
@@ -33,6 +33,7 @@
   "files": [
     "apps/web/app",
     "apps/web/bin",
+    "apps/web/components",
     "apps/web/lib",
     "apps/web/scripts",
     "apps/web/.env.example",

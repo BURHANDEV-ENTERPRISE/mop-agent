@@ -1,4 +1,4 @@
-import { auth, ownerExists } from "@/lib/auth";
+import { auth, getRole, ownerExists } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
@@ -11,5 +11,12 @@ export async function requirePageSession() {
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/setup");
+  return session;
+}
+
+/** Server-side guard for pages that expose installation-wide administration. */
+export async function requireOwnerPage() {
+  const session = await requirePageSession();
+  if (getRole(session.user.id) !== "owner") redirect("/assistant");
   return session;
 }

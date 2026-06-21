@@ -5,16 +5,16 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** npm package `mop-agent@0.1.7` contains the corrected VPS
-> installer and first-run Admin/Assistant flow. The canonical installation command is
-> exactly `npx mop-agent`.
+> **Release status:** npm package `mop-agent@0.1.8` contains the corrected VPS
+> installer, first-run Admin/Assistant flow, and shared retro application shell.
+> The canonical installation command is exactly `npx mop-agent`.
 
 ## Current status
 
 The application core through Fasa 7 foundation is implemented: reverse-WSS
 project links, SQLite + sqlite-vec storage, Better Auth, semantic recall,
-provider settings, consolidation, approval-based write-back, Telegram and
-Discord adapters, skills, graph UI, execution backends, and team invites.
+admin-only provider/user settings, consolidation, approval-based write-back,
+Telegram and Discord adapters, skills, graph UI, execution backends, and user invites.
 
 The npm bootstrap stages the packaged application durably at `/opt/mop-agent`,
 uses the proven SQLite + sqlite-vec backend, and asks for sudo only for specific
