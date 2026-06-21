@@ -142,3 +142,27 @@ export function planSsl({ domain, email }) {
 
 /** What is listening on :80 (for the fallback scan). */
 export const PORT80_SCAN = "ss -ltnp 'sport = :80' 2>/dev/null || lsof -i :80 2>/dev/null || true";
+
+/** nginx config location differs by distro (debian uses sites-available/enabled). */
+export function nginxPaths(family) {
+  if (family === "debian") {
+    return { conf: "/etc/nginx/sites-available/mop-agent.conf", enabled: "/etc/nginx/sites-enabled/mop-agent.conf" };
+  }
+  // rhel / arch / alpine: drop-in conf.d is auto-included by the main nginx.conf
+  return { conf: "/etc/nginx/conf.d/mop-agent.conf", enabled: null };
+}
+
+/** Canonical install locations — shown in the TUI and the README. */
+export function installPaths(appDir, family) {
+  const ng = nginxPaths(family);
+  return {
+    "app code": appDir,
+    "env file": `${appDir}/apps/web/.env`,
+    "brain + db": `${appDir}/data  (SQLite + sqlite-vec; MOP_AGENT_DATA_DIR)`,
+    "nginx vhost": ng.conf,
+    "nginx enabled": ng.enabled ?? "(auto-included via conf.d)",
+    "systemd unit": "/etc/systemd/system/mop-agent.service",
+    "tls certs": "/etc/letsencrypt/live/<domain>/  (certbot-managed)",
+    logs: "journalctl -u mop-agent -f",
+  };
+}

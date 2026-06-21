@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import {
   c, detectOS, renderNginxVhost, renderSystemdUnit,
   planInstallDeps, planDbSetup, planSsl, PORT80_SCAN,
+  nginxPaths, installPaths,
 } from "./lib.mjs";
 
 const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -49,6 +50,30 @@ function banner() {
   console.log("");
 }
 
+function supportedLinux(os = detectOS()) {
+  if (os.family !== "unsupported" && os.family !== "unknown" && os.pkg) return true;
+  console.log(c("red", `  Automated production install is not supported on ${os.pretty || os.platform}.`));
+  if (os.platform === "win32") {
+    console.log(c("yellow", "  Windows: use WSL2 Ubuntu for production, or native PowerShell for development."));
+  } else if (os.platform === "darwin") {
+    console.log(c("yellow", "  macOS: development mode only; deploy production on a supported Linux host."));
+  } else {
+    console.log(c("yellow", "  Supported Linux families: Debian/Ubuntu, RHEL/Fedora, Arch, and Alpine."));
+  }
+  console.log(c("gray", "  Guide: https://github.com/BURHANDEV-ENTERPRISE/mop-agent#platform-support\n"));
+  return false;
+}
+
+function printInstallLocations(os = detectOS()) {
+  if (!supportedLinux(os)) return false;
+  console.log(c("bold", "Installation locations"));
+  for (const [label, value] of Object.entries(installPaths(APP_DIR, os.family))) {
+    console.log(`  ${label.padEnd(15)} ${value}`);
+  }
+  console.log(c("gray", "  /var/www is not used: nginx reverse-proxies to this Node.js service.\n"));
+  return true;
+}
+
 /** Run a shell command (or print it in dry-run). Returns {code, stdout}. */
 function run(cmd, { capture = false } = {}) {
   if (DRY) { console.log(c("gray", `  [dry-run] $ ${cmd}`)); return { code: 0, stdout: "" }; }
@@ -73,10 +98,7 @@ function runSteps(steps) {
 function cmdInstall() {
   banner();
   const os = detectOS();
-  if (os.family === "unsupported" || !os.pkg) {
-    console.log(c("red", `  Unsupported OS (${os.platform}). Linux (debian/rhel/arch/alpine) required for auto-install.`));
-    return;
-  }
+  if (!printInstallLocations(os)) return;
   console.log(c("bold", "Installing system dependencies (PostgreSQL, nginx, certbot)…\n"));
   runSteps(planInstallDeps(os));
   console.log(c("green", "\n✓ dependencies step complete. Next: mop-agent setup\n"));
@@ -84,6 +106,8 @@ function cmdInstall() {
 
 async function cmdSetup() {
   banner();
+  const os = detectOS();
+  if (!printInstallLocations(os)) return;
   const rl = createInterface({ input, output });
   const ask = async (q, def) => (await rl.question(c("cyan", `  ${q}${def ? c("gray", ` [${def}]`) : ""}: `))).trim() || def || "";
 
@@ -124,11 +148,14 @@ async function cmdSetup() {
 
   // 4) nginx vhost
   const vhost = renderNginxVhost({ domain, port });
-  const vhostPath = `/etc/nginx/sites-available/mop-agent.conf`;
+  const nginx = nginxPaths(os.family);
+  const vhostPath = nginx.conf;
   console.log(c("cyan", "▸ nginx reverse proxy"));
   writeConf(vhostPath, vhost);
   runSteps([
-    { label: "Enable site", cmd: `ln -sf ${vhostPath} /etc/nginx/sites-enabled/mop-agent.conf` },
+    ...(nginx.enabled
+      ? [{ label: "Enable site", cmd: `ln -sf ${vhostPath} ${nginx.enabled}` }]
+      : []),
     { label: "Test nginx config", cmd: "nginx -t" },
     { label: "Reload nginx", cmd: "systemctl reload nginx" },
   ]);
@@ -156,10 +183,12 @@ async function cmdSetup() {
   }
 
   console.log(c("green", `\n✓ Setup complete. Visit ${domain ? `https://${domain}` : `http://localhost:${port}`}/setup to create the owner.\n`));
+  printInstallLocations(os);
 }
 
 function cmdUpdate() {
   banner();
+  if (!printInstallLocations()) return;
   console.log(c("bold", "Updating MOP-AGENT…\n"));
   runSteps([
     { label: "Pull latest", cmd: `cd ${APP_DIR} && git pull --ff-only` },
@@ -173,6 +202,7 @@ function cmdUpdate() {
 
 function cmdStatus() {
   banner();
+  if (!printInstallLocations()) return;
   const checks = [
     ["service", "systemctl is-active mop-agent 2>/dev/null || echo inactive"],
     ["nginx", "systemctl is-active nginx 2>/dev/null || echo inactive"],
@@ -189,11 +219,15 @@ function cmdStatus() {
 
 function cmdUninstall() {
   banner();
+  const os = detectOS();
+  if (!printInstallLocations(os)) return;
+  const nginx = nginxPaths(os.family);
+  const nginxRemove = [nginx.enabled, nginx.conf].filter(Boolean).join(" ");
   console.log(c("bold", "Removing MOP-AGENT service + nginx vhost…\n"));
   runSteps([
     { label: "Stop + disable service", cmd: "systemctl disable --now mop-agent 2>/dev/null || true" },
     { label: "Remove unit", cmd: "rm -f /etc/systemd/system/mop-agent.service && systemctl daemon-reload" },
-    { label: "Remove nginx vhost", cmd: "rm -f /etc/nginx/sites-enabled/mop-agent.conf /etc/nginx/sites-available/mop-agent.conf && (systemctl reload nginx || true)" },
+    { label: "Remove nginx vhost", cmd: `rm -f ${nginxRemove} && (systemctl reload nginx || true)` },
   ]);
   if (args.purge) {
     console.log(c("red", "  --purge: removing data + database"));
@@ -225,6 +259,7 @@ function randomToken(n) {
 
 async function tui() {
   banner();
+  if (!supportedLinux()) return;
   if (DRY) console.log(c("yellow", "  Running in DRY-RUN (no changes). Re-run as root to apply.\n"));
   const rl = createInterface({ input, output });
   const menu = [

@@ -1,16 +1,24 @@
 /** Verify owner bootstrap + single-owner signup lock. */
-import { runAllMigrations } from "../apps/web/lib/db/migrate.js";
-import { auth, ownerExists } from "../apps/web/lib/auth.js";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+process.env.MOP_AGENT_DATA_DIR = mkdtempSync(join(tmpdir(), "mop-agent-auth-test-"));
+
+const { runAllMigrations } = await import("../apps/web/lib/db/migrate.js");
+const { auth, ownerExists } = await import("../apps/web/lib/auth.js");
 
 await runAllMigrations();
-console.log("ownerExists (before):", ownerExists());
+const before = ownerExists();
+console.log("ownerExists (before):", before);
 
 const r1 = await auth.api
   .signUpEmail({ body: { email: "owner@test.my", password: "supersecret123", name: "Owner" } })
   .then(() => "created")
   .catch((e) => "ERR:" + e.message);
 console.log("signup #1 (owner):", r1);
-console.log("ownerExists (after):", ownerExists());
+const after = ownerExists();
+console.log("ownerExists (after):", after);
 
 const r2 = await auth.api
   .signUpEmail({ body: { email: "intruder@test.my", password: "supersecret123", name: "Intruder" } })
@@ -18,4 +26,6 @@ const r2 = await auth.api
   .catch((e) => "blocked: " + e.message);
 console.log("signup #2 (should block):", r2);
 
-process.exit(0);
+const ok = !before && r1 === "created" && after && r2.startsWith("blocked:");
+console.log(`\n[test] ${ok ? "PASS ✅" : "FAIL ❌"}`);
+process.exit(ok ? 0 : 1);

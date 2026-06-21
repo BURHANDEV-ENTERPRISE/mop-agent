@@ -5,7 +5,7 @@
  *
  *   npx tsx scripts/smoke-link.mts
  */
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -23,11 +23,32 @@ const { serve } = await import("../packages/flow-connector/src/serve.js");
 const { DEFAULT_CAPABILITIES } = await import("../packages/link-protocol/src/index.js");
 
 const PORT = 3999;
-const ROOT = "/tmp/mop-test-proj";
+// Isolate the FLOW fixture too. A fixed /tmp path retained append_memory rows
+// from earlier runs and made the expected snapshot count nondeterministic.
+const ROOT = mkdtempSync(join(tmpdir(), "mop-test-proj-"));
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 async function main() {
+  const mopDir = join(ROOT, ".MOP");
+  const memoryDir = join(mopDir, "memory");
+  mkdirSync(memoryDir, { recursive: true });
+  writeFileSync(
+    join(mopDir, "STATE.json"),
+    JSON.stringify({
+      schemaVersion: "1.2.0",
+      projectName: "test-proj",
+      autosync: { token: "SECRET_SHOULD_BE_REDACTED" },
+    }),
+  );
+  writeFileSync(
+    join(memoryDir, "fixture.jsonl"),
+    [
+      { id: "mem-1", at: 1718900000000, actor: "moon", kind: "decision", summary: "use reverse WSS for the link" },
+      { id: "mem-2", at: 1718900100000, actor: "moon", kind: "fix", summary: "exponential backoff on websocket reconnect" },
+    ].map((row) => JSON.stringify(row)).join("\n") + "\n",
+  );
+
   await runAllMigrations();
   console.log("[test] migrated DB");
 
