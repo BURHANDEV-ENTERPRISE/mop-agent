@@ -15,6 +15,9 @@ export function localEmbedder(model = "Xenova/all-MiniLM-L6-v2"): Embedder {
         _extractor = (async () => {
           const t = await import("@xenova/transformers");
           t.env.allowLocalModels = false;
+          if (process.env.MOP_AGENT_MODEL_CACHE) {
+            t.env.cacheDir = process.env.MOP_AGENT_MODEL_CACHE;
+          }
           return t.pipeline("feature-extraction", model);
         })();
       }

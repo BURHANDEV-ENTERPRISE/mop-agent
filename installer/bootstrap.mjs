@@ -12,6 +12,7 @@ import {
   constants,
   cpSync,
   existsSync,
+  mkdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
@@ -53,9 +54,10 @@ Usage:
 Environment:
   MOP_AGENT_DIR              Durable app directory (default: ${DEFAULT_DIR})
 
-Run this command as your normal user. MOP-AGENT asks for sudo only when an OS
-operation requires it. Native Windows/macOS production installation is not yet
-supported; use WSL2 Ubuntu on Windows or a Linux host.
+Run this command as either a normal sudo user or root. When launched by a normal
+user, MOP-AGENT asks for sudo only when an OS operation requires it. The web
+service itself never runs as root. Native Windows/macOS production installation
+is not yet supported; use WSL2 Ubuntu on Windows or a Linux host.
 `);
 }
 
@@ -86,7 +88,10 @@ function writable(path) {
 
 function ensureDestination() {
   if (existsSync(APP_DIR) && writable(APP_DIR)) return;
-  if (isRoot) fail("Do not run `npx mop-agent` with sudo/root. Run it as your normal user.");
+  if (isRoot) {
+    mkdirSync(APP_DIR, { recursive: true });
+    return;
+  }
   const uid = String(process.getuid());
   const gid = String(process.getgid());
   console.log(`\n▸ Preparing ${APP_DIR} (sudo is required once for this system directory)`);
@@ -151,7 +156,6 @@ if (argv.includes("--help") || argv.includes("-h")) {
 } else {
   assertPlatform();
   assertSafeDestination();
-  if (isRoot) fail("Do not run `npx mop-agent` with sudo/root. Run it as your normal user.");
   ensureDestination();
   deployPackage();
   run(process.execPath, [resolve(APP_DIR, "installer/mop-agent.mjs"), ...argv], {

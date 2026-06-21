@@ -105,10 +105,11 @@ function q(value) {
 
 // ---- commands ----------------------------------------------------------
 
-function cmdInstall() {
+async function cmdInstall() {
   banner();
   const os = detectOS();
   if (!printInstallLocations(os)) return;
+  await maybeUpdateNpm();
   console.log(c("bold", "Installing system dependencies (nginx and Certbot)…\n"));
   runSteps(planInstallDeps(os), { privileged: true });
   console.log(c("green", "\n✓ dependencies step complete. Next: mop-agent setup\n"));
@@ -153,6 +154,7 @@ async function cmdSetup() {
     `BETTER_AUTH_SECRET=${secret(48)}`,
     `MOP_AGENT_SECRET=${secret(64).replace(/[^0-9a-f]/g, "").padEnd(64, "0").slice(0, 64)}`,
     `MOP_AGENT_DATA_DIR=${APP_DIR}/data`,
+    `MOP_AGENT_MODEL_CACHE=${APP_DIR}/data/models`,
     `MOP_AGENT_CONSOLIDATE_CRON=0 3 * * *`,
   ].join("\n") + "\n";
   console.log(c("cyan", "\n▸ Write apps/web/.env"));
@@ -186,8 +188,13 @@ async function cmdSetup() {
     { label: "Reload nginx", cmd: "systemctl reload nginx" },
   ], { privileged: true });
 
-  // 4) systemd — run the app as the invoking user, never as root by default.
-  const serviceUser = isRoot ? process.env.SUDO_USER || "root" : process.env.USER || String(process.getuid?.() ?? "root");
+  // 4) systemd — root installs get a dedicated locked-down service account.
+  const serviceUser = isRoot
+    ? ensureRootServiceUser(os)
+    : process.env.USER || String(process.getuid?.() ?? "root");
+  if (isRoot) {
+    run(`mkdir -p ${q(`${APP_DIR}/data`)} && chown -R ${serviceUser}:${serviceUser} ${q(`${APP_DIR}/data`)} ${q(`${APP_DIR}/apps/web/.env`)}`);
+  }
   const unit = renderSystemdUnit({ appDir: APP_DIR, port, user: serviceUser });
   console.log(c("cyan", "▸ systemd service (auto-restart on boot)"));
   writeConf("/etc/systemd/system/mop-agent.service", unit, { privileged: true });
@@ -294,6 +301,37 @@ function writeConf(path, content, { privileged = false } = {}) {
 
 function randomToken(n) {
   return randomBytes(Math.ceil(n / 2)).toString("hex").slice(0, n);
+}
+
+async function maybeUpdateNpm() {
+  if (args["skip-npm-update"] || process.env.MOP_AGENT_SKIP_NPM_UPDATE === "1") return;
+  const current = run("npm --version", { capture: true }).stdout.trim();
+  const latestResult = run("npm view npm version", { capture: true, allowFailure: true });
+  const latest = latestResult.stdout.trim();
+  if (!latest || latest === current) {
+    console.log(c("green", `✓ npm ${current || "unknown"} is current\n`));
+    return;
+  }
+  const engineResult = run("npm view npm@latest engines.node", { capture: true, allowFailure: true });
+  const engine = engineResult.stdout.trim();
+  const rl = createInterface({ input, output });
+  const answer = (await rl.question(c("cyan", `  Update npm ${current} → ${latest}${engine ? ` (Node ${engine})` : ""}? [Y/n]: `))).trim().toLowerCase();
+  rl.close();
+  if (answer && !answer.startsWith("y")) {
+    console.log(c("gray", "  npm update skipped.\n"));
+    return;
+  }
+  run("npm install -g npm@latest", { privileged: true });
+  console.log(c("green", `✓ npm updated to ${latest}\n`));
+}
+
+function ensureRootServiceUser(os) {
+  const user = "mop-agent";
+  const create = os.family === "alpine"
+    ? `id -u ${user} >/dev/null 2>&1 || adduser -S -H -h ${q(APP_DIR)} -s /sbin/nologin ${user}`
+    : `id -u ${user} >/dev/null 2>&1 || useradd --system --home-dir ${q(APP_DIR)} --shell /usr/sbin/nologin ${user}`;
+  run(create);
+  return user;
 }
 
 async function tui() {

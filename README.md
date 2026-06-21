@@ -5,8 +5,8 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** npm package `mop-agent@0.1.0` is prepared but may not have
-> been published yet. After publication, the canonical installation command is
+> **Release status:** npm package `mop-agent@0.1.1` contains the root/VPS
+> installer fix. After publishing 0.1.1, the canonical installation command is
 > exactly `npx mop-agent`.
 
 ## Current status
@@ -44,7 +44,7 @@ Prerequisites:
 - A domain with an `A`/`AAAA` record pointing to the server
 - Inbound ports 80 and 443 allowed by the firewall/security group
 
-Run as your normal user:
+Run as either your normal sudo user or directly as root on a VPS:
 
 ```bash
 npx mop-agent
@@ -67,9 +67,15 @@ For a LAN-only test, map the selected hostname to the server IP in your router
 DNS or client `/etc/hosts`. Let's Encrypt public mode requires a real public
 domain and reachable ports 80/443.
 
-The installer requests `sudo` only when it needs to write under `/opt` or
-`/etc`, install OS packages, or control nginx/systemd. Do not run the entire
-npm/npx process with `sudo`.
+When launched by a normal user, the installer requests `sudo` only when it
+needs to write under `/opt` or `/etc`, install OS packages, or control
+nginx/systemd. When launched as root, it creates a locked-down `mop-agent`
+system account and runs the web service under that account—not as root.
+
+During the `install` step, MOP-AGENT checks the installed npm version. If a
+newer npm is available it displays the version and Node.js requirement, then
+asks before running the global npm update. Set `MOP_AGENT_SKIP_NPM_UPDATE=1` to
+skip this check.
 
 Subsequent operations use the same command:
 
@@ -94,6 +100,7 @@ so it uses `/opt/mop-agent` rather than `/var/www` for application code.
 | systemd unit | `/etc/systemd/system/mop-agent.service` | same |
 | TLS certificates | `/etc/letsencrypt/live/<domain>/` | same |
 | Service logs | `journalctl -u mop-agent -f` | same |
+| Root-install service account | `mop-agent` | `mop-agent` |
 
 `MOP_AGENT_DIR` can override `/opt/mop-agent`. Updates preserve
 `apps/web/.env` and `data/`; uninstall preserves SQLite brain data unless the

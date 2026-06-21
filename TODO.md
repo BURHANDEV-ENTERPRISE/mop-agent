@@ -5,17 +5,17 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.0`
+- Package: `mop-agent@0.1.1` (`0.1.0` refused root/VPS invocation)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status before release: package name returned 404 (not published)
+- npm registry status: `0.1.0` is published; `0.1.1` is the pending root/VPS fix
 - Tarball: 86 runtime files, about 94 kB compressed / 347 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
   on access to the private GitHub repository
 
-## Completed for npm 0.1.0
+## Completed for npm 0.1.x
 
 - [x] Rename root package from `mop-agent-monorepo` to `mop-agent`.
 - [x] Remove `private: true`; add version, metadata, repository, keywords,
@@ -24,8 +24,8 @@
 - [x] Make the bootstrap copy the packaged runtime out of transient npx cache
   into `/opt/mop-agent` or `MOP_AGENT_DIR`.
 - [x] Preserve `apps/web/.env` and `data/` when staging an update.
-- [x] Refuse unsafe install destinations and refuse running the whole npx
-  process as root.
+- [x] Refuse unsafe install destinations; accept normal sudo users and root VPS
+  shells while ensuring the web service itself does not run as root.
 - [x] Request sudo only for `/opt`, `/etc`, OS packages, nginx, Certbot, and
   systemd operations.
 - [x] Include `npm-shrinkwrap.json` for reproducible application dependencies.
@@ -50,6 +50,12 @@
 - [x] Document Linux, Windows WSL2/native development, macOS development, and
   every installed filesystem location in README.
 - [x] Add `prepublishOnly` release checks.
+- [x] Patch 0.1.1: allow the common root VPS invocation while creating a
+  dedicated non-root `mop-agent` system account for the running service.
+- [x] Patch 0.1.1: check for a newer npm during `install`, display its Node
+  requirement, and ask before applying the global npm update.
+- [x] Give the service account ownership of SQLite/model data and the mode-0600
+  environment file; place the local model cache below the data directory.
 - [x] Verify the real local tarball executable:
   - `--version` reports `0.1.0`
   - bootstrap self-test passes
@@ -70,7 +76,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.0`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.1`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 
