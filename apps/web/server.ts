@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import next from "next";
 import { attachGateway } from "./lib/ws/gateway.js";
 import { startChannels } from "./lib/channels/index.js";
+import { startScheduler } from "./lib/brain/scheduler.js";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT ?? 3000);
@@ -20,5 +21,7 @@ app.prepare().then(() => {
     console.log(`MOP-AGENT → http://localhost:${port}  (link ws: /link)`);
     const channels = await startChannels();
     if (channels.length) console.log(`channels started: ${channels.join(", ")}`);
+    const jobs = startScheduler();
+    if (jobs.length) console.log(`scheduler: ${jobs.join(", ")}`);
   });
 });

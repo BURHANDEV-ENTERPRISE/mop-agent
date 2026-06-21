@@ -42,7 +42,7 @@ export function embedText(text: string): Promise<number[]> {
   return _embedder.embed(text);
 }
 
-export type RefType = "episodic" | "semantic";
+export type RefType = "episodic" | "semantic" | "skill";
 
 export async function embedAndIndex(refType: RefType, refId: string, text: string): Promise<void> {
   const sqlite = getSqlite();

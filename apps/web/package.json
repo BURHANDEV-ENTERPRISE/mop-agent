@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "db:migrate": "tsx scripts/migrate.ts",
+    "cli": "tsx bin/mop-agent.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@mop/link-protocol": "*",
     "better-auth": "^1.6.20",
     "better-sqlite3": "^12.11.1",
+    "croner": "^10.0.1",
     "discord.js": "^14.26.4",
     "drizzle-orm": "^0.45.2",
     "grammy": "^1.44.0",
@@ -23,6 +25,7 @@
     "openai": "^6.44.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "reactflow": "^11.11.4",
     "sqlite-vec": "^0.1.9",
     "ws": "^8.18.0"
   },

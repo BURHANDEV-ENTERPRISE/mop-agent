@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS channel_binding (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS skill (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  body TEXT NOT NULL,
+  source_projects TEXT,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS vec_map (
   rowid INTEGER PRIMARY KEY,
   ref_type TEXT NOT NULL,

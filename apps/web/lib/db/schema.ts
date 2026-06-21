@@ -62,6 +62,16 @@ export const channelBinding = sqliteTable("channel_binding", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+/** Procedural memory — reusable how-to / skills (Fasa 5). Shared across projects. */
+export const skill = sqliteTable("skill", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  body: text("body").notNull(),
+  sourceProjects: text("source_projects", { mode: "json" }).$type<string[]>(),
+  createdAt: integer("created_at").notNull(),
+});
+
 /** Maps a sqlite-vec rowid to the memory/semantic row it embeds. */
 export const vecMap = sqliteTable("vec_map", {
   rowid: integer("rowid").primaryKey(),

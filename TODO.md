@@ -30,10 +30,10 @@ Run live: set `BETTER_AUTH_SECRET` (32+) in `apps/web/.env`, then `npm run dev:w
 
 ## ⏭️ Later phases (from PRD roadmap)
 
-- **Fasa 3.5** — thin `mop-agent` CLI + cron (`croner`) + daemon (`serve`).
 - **Fasa 4** — ✅ done (consolidation + live write-back + approval).
 - **Fasa 4.5** — ✅ done (channels: Telegram `grammy` + Discord `discord.js`, channel↔project binding, commands /projects /use; grounded answers). Live bot needs a token (`TELEGRAM_BOT_TOKEN` / `DISCORD_BOT_TOKEN` in `.env`). smoke-channels PASS.
 - **Live-verified** — git repo init'd; real `npm run dev:web` end-to-end via curl: owner signup → link real project (reverse WSS) → grounded chat → write-back w/ approval persisted to project `.MOP/memory`. (Fixed: Next needs extensionless relative imports.)
-- **Fasa 5** — scheduled consolidation, skills registry, graph/canvas (React Flow).
+- **Fasa 3.5** — ✅ cron scheduler (`croner`) → scheduled consolidation (`MOP_AGENT_CONSOLIDATE_CRON`, wired into server.ts); thin `mop-agent` CLI (`npm run cli -- <migrate|status|projects|consolidate|skills|skill-add>`); daemon = run `npm run start` under PM2/systemd/Task. smoke-fasa5 PASS.
+- **Fasa 5** — ✅ skills registry (`skill` table, addSkill/listSkills, `/api/skills`, **procedural recall** layer in broker/ContextPack); graph API `/api/graph` + React Flow page `/brain/graph` (projects⟷patterns⟷skills). Scheduled consolidation (above). smoke-fasa5 PASS.
 - **Fasa 6** — more channels, voice, sandboxing backends (Docker/SSH) for `runShell`/`editCode`.
 - **Fasa 7** — multi-user/team, Postgres option, cloud sync.

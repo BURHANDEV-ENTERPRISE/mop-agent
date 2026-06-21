@@ -7,7 +7,7 @@
  */
 import { inArray } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { memoryEntry, semanticNote } from "../db/schema";
+import { memoryEntry, semanticNote, skill } from "../db/schema";
 import { semanticSearch } from "../memory/embed";
 
 export type RecalledMemory = {
@@ -23,14 +23,19 @@ export class ContextPack {
   constructor(
     readonly episodic: RecalledMemory[],
     readonly semantic: Array<{ id: string; title: string; body: string }>,
+    readonly procedural: Array<{ id: string; name: string; description: string }> = [],
   ) {}
 
   get isEmpty(): boolean {
-    return this.episodic.length === 0 && this.semantic.length === 0;
+    return this.episodic.length === 0 && this.semantic.length === 0 && this.procedural.length === 0;
   }
 
   toPromptString(): string {
     const lines: string[] = [];
+    if (this.procedural.length) {
+      lines.push("Reusable skills (procedural memory):");
+      for (const s of this.procedural) lines.push(`- ${s.name}: ${s.description}`);
+    }
     if (this.semantic.length) {
       lines.push("Cross-project knowledge (Main Brain):");
       for (const s of this.semantic) lines.push(`- ${s.title}: ${s.body}`);
@@ -58,6 +63,7 @@ export async function recall(opts: RecallOptions): Promise<ContextPack> {
 
   const episodicIds = hits.filter((h) => h.refType === "episodic").map((h) => h.refId);
   const semanticIds = hits.filter((h) => h.refType === "semantic").map((h) => h.refId);
+  const skillIds = hits.filter((h) => h.refType === "skill").map((h) => h.refId);
 
   // Episodic: load, then apply the judgment layer.
   const episodicRows = episodicIds.length
@@ -82,5 +88,11 @@ export async function recall(opts: RecallOptions): Promise<ContextPack> {
     : [];
   const semantic = semanticRows.map((s) => ({ id: s.id, title: s.title, body: s.body }));
 
-  return new ContextPack(episodic, semantic);
+  // Procedural (skills): always allowed (shared layer).
+  const skillRows = skillIds.length
+    ? db.select().from(skill).where(inArray(skill.id, skillIds)).all()
+    : [];
+  const procedural = skillRows.map((s) => ({ id: s.id, name: s.name, description: s.description }));
+
+  return new ContextPack(episodic, semantic, procedural);
 }
