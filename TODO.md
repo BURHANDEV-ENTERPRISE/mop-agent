@@ -34,6 +34,8 @@
   prompts, status, and systemd dependency.
 - [x] Make installer commands fail fast instead of reporting false success.
 - [x] Validate domain, email, and port inputs.
+- [x] Support LAN testing with a local hostname and HTTP when HTTPS is declined;
+  only request a Let's Encrypt email when HTTPS is enabled.
 - [x] Generate secrets with `crypto.randomBytes`; write `.env` as mode `0600`
   and preserve it unless `setup --force` is explicitly used.
 - [x] Keep the TUI open after each selected operation.

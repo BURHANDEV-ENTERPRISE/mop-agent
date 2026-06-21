@@ -121,10 +121,12 @@ async function cmdSetup() {
   const rl = createInterface({ input, output });
   const ask = async (q, def) => (await rl.question(c("cyan", `  ${q}${def ? c("gray", ` [${def}]`) : ""}: `))).trim() || def || "";
 
-  const domain = await ask("Domain (e.g. agent.mydomain.com)");
+  const domain = await ask("Domain/hostname (e.g. agent.mydomain.com or mop-agent.local)");
   const port = await ask("App port", "3000");
-  const email = await ask("Email for Let's Encrypt", domain ? `admin@${domain.split(".").slice(-2).join(".")}` : "");
   const wantSsl = (await ask("Obtain HTTPS cert now? (y/n)", "y")).toLowerCase().startsWith("y");
+  const email = wantSsl
+    ? await ask("Email for Let's Encrypt", domain ? `admin@${domain.split(".").slice(-2).join(".")}` : "")
+    : "";
   rl.close();
 
   if (!isValidDomain(domain)) throw new Error(`Invalid domain: ${domain || "(empty)"}`);
@@ -133,9 +135,10 @@ async function cmdSetup() {
 
   // 1) .env
   const secret = (n) => randomToken(n);
+  const protocol = wantSsl ? "https" : "http";
   const env = [
     `PORT=${port}`,
-    `BETTER_AUTH_URL=https://${domain}`,
+    `BETTER_AUTH_URL=${protocol}://${domain}`,
     `BETTER_AUTH_SECRET=${secret(48)}`,
     `MOP_AGENT_SECRET=${secret(64).replace(/[^0-9a-f]/g, "").padEnd(64, "0").slice(0, 64)}`,
     `MOP_AGENT_DATA_DIR=${APP_DIR}/data`,
@@ -200,7 +203,7 @@ async function cmdSetup() {
     }
   }
 
-  console.log(c("green", `\n✓ Setup complete. Visit ${domain ? `https://${domain}` : `http://localhost:${port}`}/setup to create the owner.\n`));
+  console.log(c("green", `\n✓ Setup complete. Visit ${protocol}://${domain}/setup to create the owner.\n`));
   printInstallLocations(os);
 }
 

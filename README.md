@@ -56,6 +56,12 @@ The first run copies the npm-packaged runtime from the temporary npx cache into
 SQLite database, HTTPS, and systemd service. The menu remains open between
 steps.
 
+For a LAN-only test without a public domain, use a hostname containing a dot,
+such as `mop-agent.local`, choose `n` when asked for HTTPS, and map that hostname
+to the server IP in your router DNS or client `/etc/hosts`. The installer will
+then use `http://mop-agent.local`. Let's Encrypt requires a real public domain
+and reachable ports 80/443.
+
 The installer requests `sudo` only when it needs to write under `/opt` or
 `/etc`, install OS packages, or control nginx/systemd. Do not run the entire
 npm/npx process with `sudo`.
