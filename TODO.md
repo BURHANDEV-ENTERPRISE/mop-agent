@@ -5,10 +5,10 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.8` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.10` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: publish `0.1.8` after the release checks below
+- npm registry status: publish `0.1.10` after the release checks below
 - Tarball: 96 runtime files, about 162 kB compressed / 592 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
@@ -79,6 +79,11 @@
   Brain, project chat, and Settings using the favicon logo.
 - [x] Patch 0.1.8: consolidate Provider and Team into an admin-only Settings
   experience with Providers and Users sections; retain `/team` as a redirect.
+- [x] Patch 0.1.9: make `/setup` a one-time Admin-only bootstrap route, add a
+  dedicated `/login`, and remove the invited-account signup switch.
+- [x] Patch 0.1.9: let Admin create ready-to-login accounts directly in Users.
+- [x] Patch 0.1.9: restore, validate, reload, and locally probe the nginx domain
+  reverse proxy after every Update.
 - [x] Give the service account ownership of SQLite/model data and the mode-0600
   environment file; place the local model cache below the data directory.
 - [x] Verify the real local tarball executable:
@@ -101,7 +106,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.8`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.10`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 
@@ -158,3 +163,54 @@ MOP_AGENT_DIR="$HOME/mop-agent-registry-test" npx mop-agent status --dry-run
 - [x] Fasa 7 foundation: roles, invites, Team UI, and sensitive-route gates.
 - [x] Local MiniLM embeddings and encrypted provider configuration.
 - [x] FLOW artifact, workflow-status, and project-context tools.
+
+## UI fixes requested (do these next — for Codex)
+
+Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `#7f8da2`.
+
+- [ ] **Assistant toolbar text invisible** (`.mop-assistant-toolbar`). The
+  `LIVE ASSISTANT` / `offline demo` / `MEMORY SCOPE` + `<select>` render with
+  dark text on a dark surface (low/no contrast). Fix: give the toolbar an
+  explicit light surface OR set readable colors against its actual parent;
+  force the dropdown readable with `.mop-assistant-toolbar select,
+  .mop-assistant-toolbar option { background:#fffdf2; color:#2d4a3e; }`.
+  Verify all four labels are legible in both light and dark surrounding panels.
+  (Inline styles live on the elements; the surrounding surface comes from the
+  global stylesheet — fix at the CSS rule for `.mop-assistant-toolbar`, don't
+  rely on inline overrides alone.)
+- [ ] **Settings sidebar should match the main app sidebar.** Make
+  `.mop-settings-nav` / `.mop-settings-sidebar` (Providers/Users `<button>`s)
+  render identically to `.mop-app-sidebar` (`.mop-nav-section` with a `<p>`
+  section heading, `<nav>` of items, `.mop-nav-icon`, `.is-active`,
+  `.mop-sidebar-spacer`, `.mop-account-card`). Recommended: reuse the shared
+  sidebar shell/classes so Providers/Users look like Assistant/Brain/Settings
+  items; keep "← BACK TO WORKSPACE" styled as a nav item. Files: settings
+  layout/page under `apps/web/app/settings/` + the shared sidebar component +
+  global CSS.
+
+## Answer: "dah lengkap ke?"
+
+Functionally **yes** for a single-node self-host (SQLite): install → setup →
+admin → providers/users → link project → grounded chat → consolidation →
+approval write-back → channels → execution backends. Remaining before calling it
+"done":
+1. **Publish** — run the "Publish sequence" above (`npm publish` → `mop-agent@0.1.10`).
+2. **Two UI fixes** above.
+3. **Production verification** checklist above (real VPS + DNS + Certbot reboot test).
+4. Deferred infra (only if scaling): PostgreSQL/pgvector, multi-instance cloud sync.
+
+## Install commands (also in README)
+
+- Linux (recommended): `curl -fsSL https://raw.githubusercontent.com/BURHANDEV-ENTERPRISE/mop-agent/main/install.sh | bash` or `sudo npx mop-agent`
+- macOS: dev only — `npx mop-agent` for local; production = Linux/WSL2.
+- Windows: use **WSL2** (Ubuntu) then the Linux command; native Windows not a production target.
+
+## Filesystem locations (per OS — keep README + installer `installPaths()` in sync)
+
+- app code: `/opt/mop-agent` (or `$MOP_AGENT_DIR`)
+- env: `/opt/mop-agent/apps/web/.env` (mode 0600)
+- brain + DB: `/opt/mop-agent/data` (`MOP_AGENT_DATA_DIR`)
+- nginx vhost: debian `/etc/nginx/sites-available/mop-agent.conf` (+ `sites-enabled` symlink); rhel/arch/alpine `/etc/nginx/conf.d/mop-agent.conf`
+- systemd unit: `/etc/systemd/system/mop-agent.service`
+- TLS certs: `/etc/letsencrypt/live/<domain>/`
+- logs: `journalctl -u mop-agent -f`
