@@ -5,7 +5,7 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** release candidate `mop-agent@0.1.15` contains the corrected VPS
+> **Release status:** release candidate `mop-agent@0.1.16` contains the corrected VPS
 > installer, one-time Admin setup/login flow, and simplified shared application shell
 > with centered page titles and ChatGPT-inspired navigation.
 > The canonical installation command is exactly `npx mop-agent`.

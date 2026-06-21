@@ -369,6 +369,123 @@ button {
 .mop-account-copy strong { font-size: 12px; }
 .mop-account-copy small { color: rgba(254, 249, 225, .52); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; }
 
+.mop-account-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  padding: 0;
+  border: 0;
+  background: rgba(20, 34, 29, .58);
+  box-shadow: none;
+  cursor: default;
+}
+
+.mop-account-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  width: min(390px, 100vw);
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  color: var(--mop-green);
+  border-left: 2px solid var(--mop-green);
+  background:
+    linear-gradient(rgba(255, 253, 242, .9), rgba(254, 249, 225, .96)),
+    repeating-linear-gradient(0deg, transparent 0, transparent 7px, rgba(116, 34, 32, .045) 7px, rgba(116, 34, 32, .045) 8px);
+  box-shadow: -8px 0 0 rgba(45, 74, 62, .14);
+  animation: mop-drawer-enter 150ms steps(5, end);
+}
+
+@keyframes mop-drawer-enter {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mop-account-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(45, 74, 62, .28);
+}
+.mop-account-drawer-header > div { display: grid; gap: 4px; }
+.mop-account-drawer-header span {
+  color: var(--mop-red);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+.mop-account-drawer-header strong { font-family: "SFMono-Regular", Consolas, monospace; font-size: 20px; }
+.mop-account-drawer-header button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(45, 74, 62, .38);
+  background: var(--mop-paper);
+  color: var(--mop-green);
+  font-size: 21px;
+  cursor: pointer;
+}
+
+.mop-account-drawer-profile {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid rgba(45, 74, 62, .38);
+  border-bottom-width: 4px;
+  background: rgba(255, 253, 242, .78);
+}
+.mop-account-drawer-avatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  background: var(--mop-red);
+  color: var(--mop-cream);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 22px;
+  font-weight: 900;
+}
+.mop-account-drawer-profile > div { min-width: 0; display: grid; gap: 5px; }
+.mop-account-drawer-profile strong,
+.mop-account-drawer-profile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mop-account-drawer-profile strong { font-size: 15px; }
+.mop-account-drawer-profile > div span { color: rgba(45, 74, 62, .62); font-size: 11px; }
+
+.mop-account-drawer-details { margin: 18px 0 0; }
+.mop-account-drawer-details > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 4px;
+  border-bottom: 1px solid rgba(45, 74, 62, .18);
+}
+.mop-account-drawer-details dt { color: rgba(45, 74, 62, .58); font-size: 11px; }
+.mop-account-drawer-details dd { margin: 0; color: var(--mop-red); font-size: 11px; font-weight: 800; }
+.mop-account-drawer-spacer { flex: 1; }
+
+.mop-account-logout {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--mop-red);
+  border-bottom-width: 4px;
+  background: var(--mop-red);
+  color: var(--mop-cream);
+  cursor: pointer;
+}
+
 .mop-app-main {
   grid-area: main;
   min-width: 0;

@@ -41,6 +41,7 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [accountDrawerOpen, setAccountDrawerOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [settingsSection, setSettingsSection] = useState<"providers" | "users">("providers");
   const isAdmin = viewer.role === "owner";
@@ -57,6 +58,15 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
     if (requested === "users") setSettingsSection("users");
     setSidebarCollapsed(window.localStorage.getItem("mop-agent-sidebar-collapsed") === "1");
   }, []);
+
+  useEffect(() => {
+    if (!accountDrawerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAccountDrawerOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [accountDrawerOpen]);
 
   async function logout() {
     await signOut();
@@ -162,7 +172,14 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
               <span>← BACK TO WORKSPACE</span>
             </a>
           )}
-          <button className="mop-account-card" type="button" onClick={logout} title="Sign out">
+          <button
+            className="mop-account-card"
+            type="button"
+            onClick={() => { setAccountDrawerOpen(true); setMenuOpen(false); }}
+            title="Open profile"
+            aria-controls="mop-account-drawer"
+            aria-expanded={accountDrawerOpen}
+          >
             <span className="mop-account-avatar">{viewer.name.slice(0, 1).toUpperCase()}</span>
             <span className="mop-account-copy">
               <strong>{viewer.name}</strong>
@@ -173,6 +190,40 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
         </aside>
 
         <main className="mop-app-main">{children}</main>
+
+        {accountDrawerOpen && (
+          <>
+            <button className="mop-account-drawer-scrim" type="button" aria-label="Close profile drawer" onClick={() => setAccountDrawerOpen(false)} />
+            <aside id="mop-account-drawer" className="mop-account-drawer" role="dialog" aria-modal="true" aria-labelledby="mop-account-drawer-title">
+              <header className="mop-account-drawer-header">
+                <div>
+                  <span>ACCOUNT</span>
+                  <strong id="mop-account-drawer-title">Profile</strong>
+                </div>
+                <button type="button" aria-label="Close profile drawer" title="Close" onClick={() => setAccountDrawerOpen(false)}>×</button>
+              </header>
+
+              <div className="mop-account-drawer-profile">
+                <span className="mop-account-drawer-avatar">{viewer.name.slice(0, 1).toUpperCase()}</span>
+                <div>
+                  <strong>{viewer.name}</strong>
+                  <span>{viewer.email}</span>
+                </div>
+              </div>
+
+              <dl className="mop-account-drawer-details">
+                <div><dt>Access level</dt><dd>{isAdmin ? "Administrator" : "Member"}</dd></div>
+                <div><dt>Workspace</dt><dd>MOP-AGENT</dd></div>
+              </dl>
+
+              <div className="mop-account-drawer-spacer" />
+              <button className="mop-account-logout" type="button" onClick={logout}>
+                <span>↪</span>
+                <strong>Logout</strong>
+              </button>
+            </aside>
+          </>
+        )}
       </div>
     </MemoryCoreContext.Provider>
   );
