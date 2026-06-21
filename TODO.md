@@ -25,6 +25,12 @@
 
 ### 1. Make `npx mop-agent` install to a durable location
 
+- [ ] The only public npm command is exactly `npx mop-agent`. Do not require
+  users to add `sudo`, `--preserve-env`, `--yes`, a version, or `@latest`.
+- [ ] Start as the normal user. Add an internal privilege helper that requests
+  `sudo` only for the specific operations that need it (`/opt`, `/etc`, package
+  manager, nginx, systemd, Certbot). Never run the complete npm/npx process as
+  root and never make npm cache files root-owned.
 - [ ] Do not run the service from npm's temporary `_npx` cache. The published
   bin must bootstrap/clone a pinned release into `/opt/mop-agent` (or an explicit
   `MOP_AGENT_DIR`) and then execute the installer from that durable checkout.
@@ -37,7 +43,7 @@
 
   ```bash
   curl -fsSL https://raw.githubusercontent.com/BURHANDEV-ENTERPRISE/mop-agent/main/install.sh | sudo bash
-  sudo --preserve-env=PATH npx --yes mop-agent@<release>
+  npx mop-agent
   ```
 
 Acceptance: after npm cache cleanup, reboot, and user logout/login, the service

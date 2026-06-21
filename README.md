@@ -51,13 +51,18 @@ The intended one-command flows are:
 # Option A: clone the durable installation into /opt/mop-agent
 curl -fsSL https://raw.githubusercontent.com/BURHANDEV-ENTERPRISE/mop-agent/main/install.sh | sudo bash
 
-# Option B: after the package is published and the npx bootstrap is fixed
-sudo --preserve-env=PATH npx --yes mop-agent@latest
+# Option B: official npm experience after the release gate
+npx mop-agent
 ```
 
 The TUI separates system dependency installation from application setup. Run
 both `install` and `setup` when prompted. Until the P0 installer tasks are
 complete, treat these commands as testing instructions, not a production SLA.
+
+`npx mop-agent` is the canonical user command. It must run initially as the
+normal user and request `sudo` only for privileged operations such as writing
+to `/opt` or `/etc`, installing OS packages, and controlling systemd. Do not
+run the entire npm/npx process with `sudo`.
 
 ### Linux filesystem map
 
