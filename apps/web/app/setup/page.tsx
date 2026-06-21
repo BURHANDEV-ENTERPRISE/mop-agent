@@ -81,6 +81,17 @@ export default function SetupPage() {
       </form>
 
       {msg && <p style={{ marginTop: 16, opacity: 0.85 }}>{msg}</p>}
+
+      <p style={{ marginTop: 16, fontSize: 13, opacity: 0.7 }}>
+        {mode === "signin" ? "Invited to join the team? " : "Already have an account? "}
+        <button
+          type="button"
+          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+          style={{ background: "none", border: "none", color: "#7aa2ff", cursor: "pointer", padding: 0 }}
+        >
+          {mode === "signin" ? "Create account with your invited email" : "Sign in"}
+        </button>
+      </p>
     </main>
   );
 }

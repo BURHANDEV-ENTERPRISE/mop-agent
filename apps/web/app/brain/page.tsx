@@ -71,7 +71,8 @@ export default function BrainPage() {
       <h1 style={{ fontSize: 24 }}>🧠 Brain</h1>
       <p style={{ opacity: 0.65 }}>
         Main Brain + linked project brains. <a href="/brain/graph" style={{ color: "#7aa2ff" }}>🕸 Knowledge graph →</a>{" "}
-        <a href="/settings" style={{ color: "#7aa2ff" }}>⚙️ Settings →</a>
+        <a href="/settings" style={{ color: "#7aa2ff" }}>⚙️ Settings →</a>{" "}
+        <a href="/team" style={{ color: "#7aa2ff" }}>👥 Team →</a>
       </p>
 
       <div style={{ margin: "20px 0", display: "flex", gap: 12, alignItems: "center" }}>
