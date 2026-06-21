@@ -5,11 +5,11 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.6` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.7` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: publish `0.1.6` after the release checks below
-- Tarball: 95 runtime files, about 158 kB compressed / 575 kB unpacked
+- npm registry status: publish `0.1.7` after the release checks below
+- Tarball: 95 runtime files, about 159 kB compressed / 577 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
@@ -73,6 +73,8 @@
   setup by returning session state through `/api/setup/status` with HTTP 200.
 - [x] Patch 0.1.6: add a global retro pixel grid, CRT scanlines, dithered
   vignette, and stepped pixel interactions across every application page.
+- [x] Patch 0.1.7: force all cookie-protected routes out of the Next.js cache,
+  return private/no-store setup status, and verify session cookies before redirect.
 - [x] Give the service account ownership of SQLite/model data and the mode-0600
   environment file; place the local model cache below the data directory.
 - [x] Verify the real local tarball executable:
@@ -95,7 +97,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.6`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.7`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 

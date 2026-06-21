@@ -3,6 +3,30 @@
 import { useEffect, useState } from "react";
 import { signIn, signUp } from "@/lib/auth-client";
 
+type SetupStatus = { ownerExists: boolean; authenticated: boolean };
+
+async function getSetupStatus(): Promise<SetupStatus> {
+  const response = await fetch(`/api/setup/status?t=${Date.now()}`, {
+    cache: "no-store",
+    credentials: "include",
+    headers: { "cache-control": "no-cache" },
+  });
+  if (!response.ok) throw new Error(`setup status ${response.status}`);
+  return response.json() as Promise<SetupStatus>;
+}
+
+async function waitForSession(): Promise<boolean> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      if ((await getSetupStatus()).authenticated) return true;
+    } catch {
+      // A short deployment/network gap should not strand the form in busy mode.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return false;
+}
+
 export default function SetupPage() {
   const [ownerExists, setOwnerExists] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
@@ -13,11 +37,10 @@ export default function SetupPage() {
   const [mode, setMode] = useState<"signup" | "signin">("signup");
 
   useEffect(() => {
-    fetch("/api/setup/status")
-      .then((r) => r.json() as Promise<{ ownerExists: boolean; authenticated: boolean }>)
+    getSetupStatus()
       .then((status) => {
         if (status.authenticated) {
-          window.location.replace("/assistant");
+          window.location.replace(`/assistant?auth=${Date.now()}`);
           return;
         }
         setOwnerExists(status.ownerExists);
@@ -38,8 +61,26 @@ export default function SetupPage() {
         setBusy(false);
         return;
       }
-      // Better Auth creates the first session together with the owner account.
-      window.location.replace("/assistant");
+      // Verify the cookie before entering a server-protected route. If the
+      // signup response did not establish it, explicitly sign in once.
+      if (!(await waitForSession())) {
+        const login = await signIn.email({ email, password });
+        if (login.error) {
+          setMode("signin");
+          setOwnerExists(true);
+          setMsg(login.error.message ?? "Admin created, but sign in failed. Please sign in below.");
+          setBusy(false);
+          return;
+        }
+      }
+      if (await waitForSession()) {
+        window.location.replace(`/assistant?auth=${Date.now()}`);
+        return;
+      }
+      setMode("signin");
+      setOwnerExists(true);
+      setMsg("Admin created, but the session cookie was not accepted. Please sign in again.");
+      setBusy(false);
       return;
     }
 
@@ -49,7 +90,12 @@ export default function SetupPage() {
       setBusy(false);
       return;
     }
-    window.location.replace("/assistant");
+    if (await waitForSession()) {
+      window.location.replace(`/assistant?auth=${Date.now()}`);
+      return;
+    }
+    setMsg("Sign in succeeded, but the session cookie was not accepted. Check that you are using the configured HTTPS domain.");
+    setBusy(false);
   }
 
   const loading = ownerExists === null && !msg;
