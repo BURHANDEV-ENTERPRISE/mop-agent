@@ -164,7 +164,7 @@ MOP_AGENT_DIR="$HOME/mop-agent-registry-test" npx mop-agent status --dry-run
 - [x] Local MiniLM embeddings and encrypted provider configuration.
 - [x] FLOW artifact, workflow-status, and project-context tools.
 
-## UI fixes (DONE in 0.1.11)
+## UI fixes (DONE — shipping in 0.1.12)
 
 Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `#7f8da2`.
 
@@ -190,11 +190,12 @@ Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `
 Functionally **yes** for a single-node self-host (SQLite): install → setup →
 admin → providers/users → link project → grounded chat → consolidation →
 approval write-back → channels → execution backends. Status:
-1. **Publish** — ✅ `mop-agent@0.1.10` is live on npm. `0.1.11` is bumped,
-   tagged, and pushed (includes the two UI fixes); publish it when ready with
-   `npm publish --otp=<6-digit-code>` (npm 403s on re-publishing an existing
-   version, so the version must already be bumped — it is).
-2. **Two UI fixes** — ✅ done in 0.1.11 (see "UI fixes (DONE in 0.1.11)" above).
+1. **Publish** — ✅ `0.1.10` and `0.1.11` are live on npm, but `0.1.11` was
+   published from the pre-UI-fix bump commit, so the UI fixes are NOT on it.
+   `0.1.12` is bumped, tagged, and pushed and contains the UI fixes; publish it
+   with `npm publish --otp=<6-digit-code>` (npm 403s on re-publishing an
+   existing version, so the version must already be bumped — it is).
+2. **Two UI fixes** — ✅ done, shipping in 0.1.12 (see "UI fixes" above).
 3. **Production verification** checklist above (real VPS + DNS + Certbot reboot test).
 4. Deferred infra (only if scaling): PostgreSQL/pgvector, multi-instance cloud sync.
 

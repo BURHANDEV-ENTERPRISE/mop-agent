@@ -129,7 +129,7 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
                 <div className="mop-topbar-center">MOP MEMORYCORE</div>
                 <div className="mop-topbar-meta">
                   <span>{isAdmin ? "ADMIN" : "MEMBER"}</span>
-                  <span className="mop-version">v0.1.11</span>
+                  <span className="mop-version">v0.1.12</span>
                 </div>
               </>
             )}
