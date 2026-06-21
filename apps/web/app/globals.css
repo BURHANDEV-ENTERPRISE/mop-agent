@@ -247,28 +247,35 @@ button {
 }
 
 .mop-nav-section nav { display: grid; gap: 4px; }
-.mop-nav-section a {
+.mop-nav-section a,
+.mop-nav-section button {
   display: flex;
   align-items: center;
   gap: 11px;
+  width: 100%;
   min-height: 43px;
   padding: 8px 12px;
   color: rgba(254, 249, 225, .78);
   border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
   text-decoration: none;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: .055em;
   text-transform: uppercase;
+  cursor: pointer;
 }
 
-.mop-nav-section a:hover {
+.mop-nav-section a:hover,
+.mop-nav-section button:hover {
   color: var(--mop-cream);
   background: rgba(254, 249, 225, .07);
 }
 
-.mop-nav-section a.is-active {
+.mop-nav-section a.is-active,
+.mop-nav-section button.is-active {
   color: #ff8a3d;
   border-color: rgba(254, 249, 225, .18);
   background: rgba(254, 249, 225, .09);
@@ -378,15 +385,53 @@ button {
   flex-direction: column;
 }
 
+/* Toolbar lives inside the dark maroon topbar, so its text is light. */
 .mop-assistant-toolbar {
-  min-height: 55px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 9px 22px;
-  border-bottom: 1px solid rgba(45, 74, 62, .24);
-  background: rgba(254, 249, 225, .78);
+}
+.mop-assistant-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.mop-assistant-status strong {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--mop-cream);
+}
+.mop-assistant-provider {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(254, 249, 225, .66);
+  font-size: 12px;
+}
+.mop-assistant-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  color: rgba(254, 249, 225, .82);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.mop-assistant-scope select {
+  color: var(--mop-green);
+  background: var(--mop-paper);
+  border: 1px solid rgba(254, 249, 225, .32);
+  padding: 6px 8px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
 }
 
 .mop-assistant-conversation { flex: 1; overflow-y: auto; padding: 0 28px; }
@@ -416,26 +461,6 @@ button {
   align-items: start;
 }
 
-
-.mop-settings-nav { padding: 9px; }
-.mop-settings-nav button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--mop-green);
-  text-align: left;
-  cursor: pointer;
-}
-
-.mop-settings-nav button.is-active {
-  color: var(--mop-cream);
-  border-color: var(--mop-red);
-  background: var(--mop-red);
-}
 
 .mop-settings-content { padding: clamp(18px, 3vw, 30px); }
 .mop-settings-content th,
@@ -498,41 +523,12 @@ button {
   }
   .mop-app-main { min-height: calc(100vh - 62px); }
   .mop-assistant-page { min-height: calc(100vh - 62px); }
-  .mop-assistant-toolbar { align-items: flex-start; flex-direction: column; }
+  .mop-assistant-toolbar { gap: 9px; }
+  .mop-assistant-status { display: none; }
   .mop-assistant-conversation { padding: 0 16px; }
   .mop-assistant-composer-wrap { padding: 26px 12px 12px; }
   .mop-settings-grid { grid-template-columns: 1fr; }
-  .mop-settings-nav { display: flex; gap: 7px; }
-  .mop-settings-nav button { justify-content: center; }
   .mop-user-invite-form { grid-template-columns: 1fr !important; }
-  .mop-settings-sidebar {
-    position: fixed;
-    top: 62px;
-    left: 0;
-    bottom: 0;
-    width: min(82vw, 280px);
-    height: auto;
-    transform: translateX(-105%);
-    transition: transform 160ms steps(4, end);
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  .mop-settings-sidebar.is-open {
-    transform: translateX(0);
-  }
-}
-
-.mop-settings-sidebar {
-  grid-area: sidebar;
-  position: sticky;
-  top: 70px;
-  height: calc(100vh - 70px);
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 15px 9px 12px;
-  border-right: 2px solid rgba(45, 74, 62, .46);
 }
 
 .mop-back-workspace-btn {

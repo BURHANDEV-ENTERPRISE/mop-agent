@@ -127,7 +127,6 @@ export default function AssistantPage() {
   );
 }
 
-const selectStyle: CSSProperties = { color: "#2d4a3e", border: "1px solid rgba(45,74,62,.42)", padding: "6px 8px", background: "#fffdf2" };
 const assistantLogo: CSSProperties = { width: 86, height: 86, display: "grid", placeItems: "center" };
 const promptGrid: CSSProperties = { width: "min(100%, 650px)", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 28 };
 const promptCard: CSSProperties = { display: "flex", justifyContent: "space-between", padding: "14px 15px", border: "1px solid rgba(45,74,62,.38)", borderBottomWidth: 3, background: "#fffdf2", color: "#2d4a3e", cursor: "pointer", textAlign: "left" };

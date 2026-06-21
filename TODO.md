@@ -164,38 +164,37 @@ MOP_AGENT_DIR="$HOME/mop-agent-registry-test" npx mop-agent status --dry-run
 - [x] Local MiniLM embeddings and encrypted provider configuration.
 - [x] FLOW artifact, workflow-status, and project-context tools.
 
-## UI fixes requested (do these next — for Codex)
+## UI fixes (DONE in 0.1.11)
 
 Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `#7f8da2`.
 
-- [ ] **Assistant toolbar text invisible** (`.mop-assistant-toolbar`). The
-  `LIVE ASSISTANT` / `offline demo` / `MEMORY SCOPE` + `<select>` render with
-  dark text on a dark surface (low/no contrast). Fix: give the toolbar an
-  explicit light surface OR set readable colors against its actual parent;
-  force the dropdown readable with `.mop-assistant-toolbar select,
-  .mop-assistant-toolbar option { background:#fffdf2; color:#2d4a3e; }`.
-  Verify all four labels are legible in both light and dark surrounding panels.
-  (Inline styles live on the elements; the surrounding surface comes from the
-  global stylesheet — fix at the CSS rule for `.mop-assistant-toolbar`, don't
-  rely on inline overrides alone.)
-- [ ] **Settings sidebar should match the main app sidebar.** Make
-  `.mop-settings-nav` / `.mop-settings-sidebar` (Providers/Users `<button>`s)
-  render identically to `.mop-app-sidebar` (`.mop-nav-section` with a `<p>`
-  section heading, `<nav>` of items, `.mop-nav-icon`, `.is-active`,
-  `.mop-sidebar-spacer`, `.mop-account-card`). Recommended: reuse the shared
-  sidebar shell/classes so Providers/Users look like Assistant/Brain/Settings
-  items; keep "← BACK TO WORKSPACE" styled as a nav item. Files: settings
-  layout/page under `apps/web/app/settings/` + the shared sidebar component +
-  global CSS.
+- [x] **Assistant toolbar text now legible.** The toolbar lives inside the dark
+  maroon topbar, so the inline dark colors made `LIVE ASSISTANT` / provider /
+  `MEMORY SCOPE` invisible. Fixed at the CSS rule (not inline): removed the
+  inline overrides in `AppShell.tsx`, added `.mop-assistant-status`,
+  `.mop-assistant-provider`, `.mop-assistant-scope` classes with cream text for
+  the dark surface, a `.mop-live-dot`, and a cream `.mop-assistant-scope select`
+  (`var(--mop-paper)` bg, `var(--mop-green)` text) so the dropdown reads.
+  Mobile: status text hidden to fit the compact 62px topbar, scope select kept.
+- [x] **Settings sidebar now matches the main app sidebar.** `AppShell.tsx` no
+  longer renders the settings nav as a cream `mop-panel` with bare buttons; it
+  reuses the `mop-app-sidebar` container + `mop-nav-section` (`<p>` heading +
+  `<nav>`) with `.mop-nav-icon` and `.is-active`. Extended
+  `.mop-nav-section a` rules to also target `button` (Providers/Users switch
+  sections via JS, not navigation) so they look identical to Assistant/Brain.
+  Removed the dead `.mop-settings-nav` / `.mop-settings-sidebar` CSS. The
+  "← BACK TO WORKSPACE" + account card are unchanged at the bottom.
 
 ## Answer: "dah lengkap ke?"
 
 Functionally **yes** for a single-node self-host (SQLite): install → setup →
 admin → providers/users → link project → grounded chat → consolidation →
-approval write-back → channels → execution backends. Remaining before calling it
-"done":
-1. **Publish** — run the "Publish sequence" above (`npm publish` → `mop-agent@0.1.10`).
-2. **Two UI fixes** above.
+approval write-back → channels → execution backends. Status:
+1. **Publish** — ✅ `mop-agent@0.1.10` is live on npm. `0.1.11` is bumped,
+   tagged, and pushed (includes the two UI fixes); publish it when ready with
+   `npm publish --otp=<6-digit-code>` (npm 403s on re-publishing an existing
+   version, so the version must already be bumped — it is).
+2. **Two UI fixes** — ✅ done in 0.1.11 (see "UI fixes (DONE in 0.1.11)" above).
 3. **Production verification** checklist above (real VPS + DNS + Certbot reboot test).
 4. Deferred infra (only if scaling): PostgreSQL/pgvector, multi-instance cloud sync.
 
