@@ -36,6 +36,7 @@ export async function serve(opts: ServeOptions): Promise<void> {
       projectRoot: opts.projectRoot,
       capabilities: link.capabilities,
       hasValidSession: opts.hasValidSession,
+      execution: link.execution,
     };
 
     const ws = new WebSocket(link.wsUrl, {

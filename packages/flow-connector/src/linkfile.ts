@@ -5,7 +5,7 @@
 import { readFile, writeFile, chmod, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { Capabilities } from "@mop/link-protocol";
+import type { Capabilities, ExecutionPolicy } from "@mop/link-protocol";
 
 export type LinkFile = {
   schemaVersion: "1.0";
@@ -14,6 +14,8 @@ export type LinkFile = {
   projectId: string;
   linkToken: string;
   capabilities: Capabilities;
+  /** Only used when runShell/editCode capabilities are enabled. */
+  execution?: ExecutionPolicy;
   lastSyncAt: string | null;
   autoSync: boolean;
 };

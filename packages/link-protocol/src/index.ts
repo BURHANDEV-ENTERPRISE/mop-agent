@@ -28,6 +28,25 @@ export type Capabilities = {
   editCode: boolean;
 };
 
+/** Where capability-gated execution (run_shell / edit_code) runs (FLOW side). */
+export type ExecutionBackend = "host" | "docker" | "ssh";
+
+export type ExecutionPolicy = {
+  backend: ExecutionBackend;
+  /** "always" = every exec needs owner approval (default); "never" is dangerous. */
+  approval?: "always" | "trusted" | "never";
+  docker?: { image: string; network?: string };
+  ssh?: { host: string; user: string; cwd?: string };
+  /** hard ceiling per command (ms) */
+  timeoutMs?: number;
+};
+
+export const DEFAULT_EXECUTION_POLICY: ExecutionPolicy = {
+  backend: "host",
+  approval: "always",
+  timeoutMs: 60_000,
+};
+
 /** Safe defaults: read freely, controlled writes, no shell/code edits. */
 export const DEFAULT_CAPABILITIES: Capabilities = {
   readMemory: true,

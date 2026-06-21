@@ -8,18 +8,24 @@
 import { readFile, writeFile, mkdir, appendFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { resolve } from "node:path";
 import {
+  DEFAULT_EXECUTION_POLICY,
   isReadTool,
   TOOL_CAPABILITY,
   type Capabilities,
+  type ExecutionPolicy,
   type McpToolName,
 } from "@mop/link-protocol";
+import { runShell } from "./exec.js";
 
 export type ToolContext = {
   projectRoot: string;
   capabilities: Capabilities;
   /** Hook into the real .MOP session check (v1.2.0). Returns true if actor holds a valid session. */
   hasValidSession?: (actor?: string) => Promise<boolean> | boolean;
+  /** Required for run_shell / edit_code; defaults to host backend. */
+  execution?: ExecutionPolicy;
 };
 
 export class CapabilityError extends Error {}
@@ -59,10 +65,14 @@ export async function handleToolRequest(
       return writeArtifact(ctx.projectRoot, String(args.path), String(args.content));
     case "workflow_next":
       return { note: "TODO: advance workflow via mop-core" };
-    case "run_shell":
+    case "run_shell": {
+      // Reaches here only if capabilities.runShell is granted (see §9.1).
+      const policy = ctx.execution ?? DEFAULT_EXECUTION_POLICY;
+      return runShell(String(args.command ?? ""), ctx.projectRoot, policy);
+    }
     case "edit_code":
-      // Reaches here only if capability was granted (see §9.1 execution backends).
-      throw new CapabilityError(`not_implemented:${tool}`);
+      // Reaches here only if capabilities.editCode is granted.
+      return editCode(ctx.projectRoot, String(args.path), String(args.content));
     default:
       throw new CapabilityError(`unknown_tool:${tool}`);
   }
@@ -127,5 +137,17 @@ async function writeArtifact(projectRoot: string, relPath: string, content: stri
   const p = join(projectRoot, ".MOP", "artifacts", relPath);
   await mkdir(dirname(p), { recursive: true });
   await writeFile(p, content, "utf8");
+  return { ok: true, path: relPath };
+}
+
+/** edit_code: write a project source file, refusing paths that escape the project root. */
+async function editCode(projectRoot: string, relPath: string, content: string): Promise<{ ok: true; path: string }> {
+  const root = resolve(projectRoot);
+  const target = resolve(root, relPath);
+  if (target !== root && !target.startsWith(root + (process.platform === "win32" ? "\\" : "/"))) {
+    throw new CapabilityError("path_escapes_project_root");
+  }
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, content, "utf8");
   return { ok: true, path: relPath };
 }
