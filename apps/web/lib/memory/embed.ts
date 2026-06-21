@@ -34,7 +34,38 @@ export function dummyEmbedder(): Embedder {
   };
 }
 
-let _embedder: Embedder = dummyEmbedder();
+/**
+ * Default embedder: real local MiniLM (semantic), falling back to the dummy
+ * keyword-hash if the model can't load (offline / native issue) or when
+ * MOP_AGENT_EMBEDDER=dummy. Both produce EMBED_DIM (384) vectors, so the vec
+ * table is unaffected either way. The choice is made + cached on first embed.
+ */
+function autoEmbedder(): Embedder {
+  let impl: Embedder | null = null;
+  return {
+    async embed(text: string): Promise<number[]> {
+      if (!impl) {
+        if (process.env.MOP_AGENT_EMBEDDER === "dummy") {
+          impl = dummyEmbedder();
+        } else {
+          try {
+            const { localEmbedder } = await import("./local-embedder");
+            const le = localEmbedder();
+            await le.embed("warmup"); // force model load now so failures fall back cleanly
+            impl = le;
+            console.log("[embed] local MiniLM embedder active");
+          } catch (e) {
+            console.warn(`[embed] local embedder unavailable, using dummy: ${e instanceof Error ? e.message : e}`);
+            impl = dummyEmbedder();
+          }
+        }
+      }
+      return impl.embed(text);
+    },
+  };
+}
+
+let _embedder: Embedder = autoEmbedder();
 export function setEmbedder(e: Embedder): void {
   _embedder = e;
 }
