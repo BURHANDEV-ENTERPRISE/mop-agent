@@ -121,9 +121,19 @@ async function cmdSetup() {
   const rl = createInterface({ input, output });
   const ask = async (q, def) => (await rl.question(c("cyan", `  ${q}${def ? c("gray", ` [${def}]`) : ""}: `))).trim() || def || "";
 
-  const domain = await ask("Domain/hostname (e.g. agent.mydomain.com or mop-agent.local)");
+  const deployMode = (await ask("Deployment mode (public/local)", "public")).toLowerCase();
+  if (!new Set(["public", "local"]).has(deployMode)) {
+    rl.close();
+    throw new Error(`Invalid deployment mode: ${deployMode}. Use public or local.`);
+  }
+  const domain = await ask(
+    deployMode === "public" ? "Public domain (e.g. agent.mydomain.com)" : "LAN hostname",
+    deployMode === "local" ? "mop-agent.local" : "",
+  );
   const port = await ask("App port", "3000");
-  const wantSsl = (await ask("Obtain HTTPS cert now? (y/n)", "y")).toLowerCase().startsWith("y");
+  const wantSsl = deployMode === "public"
+    ? (await ask("Obtain HTTPS cert now? (y/n)", "y")).toLowerCase().startsWith("y")
+    : false;
   const email = wantSsl
     ? await ask("Email for Let's Encrypt", domain ? `admin@${domain.split(".").slice(-2).join(".")}` : "")
     : "";
@@ -138,6 +148,7 @@ async function cmdSetup() {
   const protocol = wantSsl ? "https" : "http";
   const env = [
     `PORT=${port}`,
+    `MOP_AGENT_DEPLOY_MODE=${deployMode}`,
     `BETTER_AUTH_URL=${protocol}://${domain}`,
     `BETTER_AUTH_SECRET=${secret(48)}`,
     `MOP_AGENT_SECRET=${secret(64).replace(/[^0-9a-f]/g, "").padEnd(64, "0").slice(0, 64)}`,
@@ -203,7 +214,7 @@ async function cmdSetup() {
     }
   }
 
-  console.log(c("green", `\n✓ Setup complete. Visit ${protocol}://${domain}/setup to create the owner.\n`));
+  console.log(c("green", `\n✓ ${deployMode} setup complete. Visit ${protocol}://${domain}/setup to create the owner.\n`));
   printInstallLocations(os);
 }
 

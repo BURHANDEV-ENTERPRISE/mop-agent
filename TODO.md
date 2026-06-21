@@ -36,6 +36,9 @@
 - [x] Validate domain, email, and port inputs.
 - [x] Support LAN testing with a local hostname and HTTP when HTTPS is declined;
   only request a Let's Encrypt email when HTTPS is enabled.
+- [x] Ask explicitly whether the installation is `public` or `local`; public
+  mode offers domain/Let's Encrypt while local mode defaults to a LAN hostname
+  and HTTP.
 - [x] Generate secrets with `crypto.randomBytes`; write `.env` as mode `0600`
   and preserve it unless `setup --force` is explicitly used.
 - [x] Keep the TUI open after each selected operation.
