@@ -13,11 +13,15 @@
     "packages/*",
     "apps/*"
   ],
+  "bin": {
+    "mop-agent": "installer/mop-agent.mjs"
+  },
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:web": "npm run dev --workspace @mop/web",
     "dev:flow": "npm run dev --workspace @mop/flow-connector",
+    "installer": "node installer/mop-agent.mjs",
     "clean": "node -e \"console.log('clean: remove dist + node_modules manually if needed')\""
   }
 }

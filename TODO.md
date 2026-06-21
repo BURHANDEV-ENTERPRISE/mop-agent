@@ -16,6 +16,8 @@ Verify anytime: `npm run typecheck --workspaces` · then each `npx tsx scripts/s
 
 Run live: set `BETTER_AUTH_SECRET` (32+) in `apps/web/.env`, then `npm run dev:web` → open `/setup` → create owner → `/brain` → link a project → chat. (No provider key = offline echo answers.)
 
+- **Deploy installer** — ✅ one-command self-host (mop-flow style): `curl … install.sh | bash` or `npx mop-agent` → TUI (install/setup/update/status/uninstall). Detects OS/pkg-mgr (debian/rhel/arch/alpine), installs PostgreSQL+nginx+certbot, setup prompts (domain/port/db), generates nginx vhost (WS-upgrade) + systemd unit (auto-restart on boot), Let's Encrypt with `:80`-busy fallback (scan → standalone → reload). `--dry-run` default when non-root. smoke-installer PASS. (Real apply needs root VPS + domain — can't headless-verify the live apt/certbot/systemctl.)
+
 ---
 
 ## 🧹 Other TODOs / backlog
