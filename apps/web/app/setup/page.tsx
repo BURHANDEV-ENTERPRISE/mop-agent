@@ -58,19 +58,7 @@ export default function SetupPage() {
 
   return (
     <main style={shell}>
-      <section style={brandPanel}>
-        <div style={logo}>M</div>
-        <p style={eyebrow}>SELF-HOSTED AI ASSISTANT</p>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 52px)", lineHeight: 1.05, margin: "12px 0 18px" }}>
-          Your assistant.<br />Your server. Your memory.
-        </h1>
-        <p style={{ color: "#9aa8bd", fontSize: 17, lineHeight: 1.7, maxWidth: 520 }}>
-          MOP-AGENT gives you one private assistant across your projects. Brain is the memory layer behind it—not the first hurdle.
-        </p>
-        <div style={featureRow}>
-          <span>◆ Private</span><span>◆ Persistent memory</span><span>◆ Cross-project</span>
-        </div>
-      </section>
+      <section style={brandPanel} aria-hidden="true" />
 
       <section style={formWrap}>
         <div style={formCard}>
@@ -123,9 +111,7 @@ const shell: React.CSSProperties = { minHeight: "100vh", display: "grid", gridTe
 const brandPanel: React.CSSProperties = { padding: "clamp(48px, 8vw, 110px)", display: "flex", flexDirection: "column", justifyContent: "center" };
 const formWrap: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", padding: 28, background: "rgba(5, 8, 13, .58)", borderLeft: "1px solid #1b2637" };
 const formCard: React.CSSProperties = { width: "min(100%, 430px)", padding: "38px 34px", border: "1px solid #243149", borderRadius: 18, background: "rgba(13, 19, 30, .94)", boxShadow: "0 24px 80px rgba(0,0,0,.35)" };
-const logo: React.CSSProperties = { width: 48, height: 48, borderRadius: 14, display: "grid", placeItems: "center", fontSize: 22, fontWeight: 800, background: "linear-gradient(135deg, #4f7cff, #8f5cff)", boxShadow: "0 10px 32px rgba(79,124,255,.32)" };
 const eyebrow: React.CSSProperties = { margin: "20px 0 0", color: "#7d9dff", fontSize: 12, fontWeight: 800, letterSpacing: ".16em" };
-const featureRow: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 20, color: "#8695aa", fontSize: 13, marginTop: 34 };
 const label: React.CSSProperties = { display: "grid", gap: 7, color: "#bac6d8", fontSize: 13, fontWeight: 650 };
 const inputStyle: React.CSSProperties = { padding: "12px 13px", borderRadius: 9, border: "1px solid #2a3951", outline: "none", background: "#0c121d", color: "#eef3fa", fontSize: 15 };
 const buttonStyle: React.CSSProperties = { marginTop: 4, padding: "12px 14px", borderRadius: 9, border: "1px solid #5278ff", background: "linear-gradient(135deg, #416cff, #6d54e8)", color: "white", fontWeight: 750, fontSize: 15, cursor: "pointer" };

@@ -229,13 +229,20 @@ function cmdUpdate() {
   if (!printInstallLocations()) return;
   console.log(c("bold", "Updating MOP-AGENT…\n"));
   runSteps([
+    // Close SQLite cleanly before migration/rebuild. In particular, this
+    // prevents a root-run update leaving live WAL handles behind.
+    { label: "Stop old service", cmd: "systemctl stop mop-agent", privileged: true, allowFailure: true },
     ...(!managedByNpx ? [{ label: "Pull latest", cmd: `cd ${q(APP_DIR)} && git pull --ff-only` }] : []),
     { label: "Install deps", cmd: `cd ${q(APP_DIR)} && npm ci` },
     { label: "Migrate SQLite", cmd: `cd ${q(`${APP_DIR}/apps/web`)} && npm run db:migrate` },
+    ...(isRoot ? [{ label: "Repair runtime ownership", cmd: `chown -R mop-agent:mop-agent ${q(`${APP_DIR}/data`)}` }] : []),
+    { label: "Remove stale Next.js build", cmd: `rm -rf ${q(`${APP_DIR}/apps/web/.next`)}` },
     { label: "Build", cmd: `cd ${q(`${APP_DIR}/apps/web`)} && npm run build` },
-    { label: "Restart service", cmd: "systemctl restart mop-agent", privileged: true },
+    { label: "Reload systemd", cmd: "systemctl daemon-reload", privileged: true },
+    { label: "Start new service", cmd: "systemctl start mop-agent", privileged: true },
+    { label: "Verify service", cmd: "sleep 2 && systemctl is-active --quiet mop-agent", privileged: true },
   ]);
-  console.log(c("green", "\n✓ updated\n"));
+  console.log(c("green", "\n✓ updated, rebuilt, and service verified\n"));
 }
 
 function cmdStatus() {

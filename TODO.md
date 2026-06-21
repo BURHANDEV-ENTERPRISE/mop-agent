@@ -5,11 +5,11 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.3` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.4` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: publish `0.1.3` after the release checks below
-- Tarball: 86 runtime files, about 94 kB compressed / 347 kB unpacked
+- npm registry status: publish `0.1.4` after the release checks below
+- Tarball: 93 runtime files, about 99 kB compressed / 366 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
@@ -62,6 +62,11 @@
   project while retaining optional all-project or project-specific memory.
 - [x] Patch 0.1.3: redirect a newly-created Admin directly into Assistant and
   document the first-run browser journey.
+- [x] Patch 0.1.4: run idempotent app + Better Auth migrations before the web
+  service accepts traffic, preventing first Admin signup from hitting missing tables.
+- [x] Patch 0.1.4: stop the service during update, repair SQLite ownership after
+  root migrations, clear stale `.next`, rebuild, start, and verify systemd.
+- [x] Patch 0.1.4: leave the requested left-side setup panel empty.
 - [x] Give the service account ownership of SQLite/model data and the mode-0600
   environment file; place the local model cache below the data directory.
 - [x] Verify the real local tarball executable:
@@ -84,7 +89,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.3`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.4`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 
