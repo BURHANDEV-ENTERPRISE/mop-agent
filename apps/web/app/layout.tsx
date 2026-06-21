@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata = {
   title: "MOP-AGENT",
   description: "Self-hosted AI assistant with persistent, cross-project memory.",
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -13,8 +15,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           margin: 0,
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          background: "#0b0f17",
-          color: "#e6edf3",
+          background: "#fef9e1",
+          color: "#2d4a3e",
         }}
       >
         {children}

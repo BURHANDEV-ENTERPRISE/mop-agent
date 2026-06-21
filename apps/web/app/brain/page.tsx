@@ -68,27 +68,27 @@ export default function BrainPage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
-      <p style={{ margin: 0 }}><a href="/assistant" style={{ color: "#7aa2ff" }}>← Assistant</a></p>
+      <p style={{ margin: 0 }}><a href="/assistant" style={{ color: "#742220" }}>← Assistant</a></p>
       <h1 style={{ fontSize: 24 }}>🧠 Brain</h1>
       <p style={{ opacity: 0.65 }}>
-        Main Brain + linked project brains. <a href="/brain/graph" style={{ color: "#7aa2ff" }}>🕸 Knowledge graph →</a>{" "}
-        <a href="/settings" style={{ color: "#7aa2ff" }}>⚙️ Settings →</a>{" "}
-        <a href="/team" style={{ color: "#7aa2ff" }}>👥 Team →</a>
+        Main Brain + linked project brains. <a href="/brain/graph" style={{ color: "#742220" }}>🕸 Knowledge graph →</a>{" "}
+        <a href="/settings" style={{ color: "#742220" }}>⚙️ Settings →</a>{" "}
+        <a href="/team" style={{ color: "#742220" }}>👥 Team →</a>
       </p>
 
       <div style={{ margin: "20px 0", display: "flex", gap: 12, alignItems: "center" }}>
         <button onClick={genCode} style={btn}>+ Link project</button>
         {code && (
-          <code style={{ background: "#111824", padding: "6px 10px", borderRadius: 6 }}>
+          <code style={{ background: "#fffdf2", padding: "6px 10px", borderRadius: 6 }}>
             mop-flow-dev link --url {typeof window !== "undefined" ? window.location.origin : ""} --code {code} --project &lt;id&gt;
           </code>
         )}
       </div>
 
-      <section style={{ margin: "8px 0 24px", border: "1px solid #1f2a3a", borderRadius: 8, padding: 16 }}>
+      <section style={{ margin: "8px 0 24px", border: "1px solid rgba(45,74,62,.28)", borderRadius: 8, padding: 16, background: "#fffdf2" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <h2 style={{ fontSize: 16, margin: 0, opacity: 0.85 }}>🌐 Main Brain ({notes.length})</h2>
-          <button onClick={runConsolidate} disabled={consolidating} style={{ ...btn, background: "#1a7f4b", borderColor: "#1a7f4b" }}>
+          <button onClick={runConsolidate} disabled={consolidating} style={{ ...btn, background: "#2d4a3e", borderColor: "#2d4a3e" }}>
             {consolidating ? "consolidating…" : "⟳ Consolidate"}
           </button>
           {consolidateMsg && <span style={{ opacity: 0.65, fontSize: 13 }}>{consolidateMsg}</span>}
@@ -123,8 +123,8 @@ export default function BrainPage() {
                 <span style={{ opacity: 0.5, fontSize: 12 }}>[{a.status}{a.error ? `: ${a.error}` : ""}]</span>
                 {a.status === "pending" && (
                   <span style={{ float: "right" }}>
-                    <button onClick={() => decide(a.id, "approve")} style={{ ...btn, padding: "4px 10px", background: "#1a7f4b", borderColor: "#1a7f4b" }}>Approve</button>{" "}
-                    <button onClick={() => decide(a.id, "deny")} style={{ ...btn, padding: "4px 10px", background: "#7f1a1a", borderColor: "#7f1a1a" }}>Deny</button>
+                    <button onClick={() => decide(a.id, "approve")} style={{ ...btn, padding: "4px 10px", background: "#2d4a3e", borderColor: "#2d4a3e" }}>Approve</button>{" "}
+                    <button onClick={() => decide(a.id, "deny")} style={{ ...btn, padding: "4px 10px", background: "#742220", borderColor: "#742220" }}>Deny</button>
                   </span>
                 )}
               </li>
@@ -138,13 +138,13 @@ export default function BrainPage() {
       <ul style={{ listStyle: "none", padding: 0 }}>
         {projects.map((p) => (
           <li key={p.id} style={card}>
-            <a href={`/brain/${p.id}`} style={{ color: "#7aa2ff", textDecoration: "none", fontWeight: 600 }}>
+            <a href={`/brain/${p.id}`} style={{ color: "#742220", textDecoration: "none", fontWeight: 600 }}>
               {p.name}
             </a>
             <span style={{ opacity: 0.6, marginLeft: 8 }}>
               {p.status === "online" ? "🟢 online" : "⚪ offline"} · {p.memoryCount} memories · {p.artifactCount} artifacts
             </span>
-            <a href={`/chat/${p.id}`} style={{ float: "right", color: "#7aa2ff" }}>chat →</a>
+            <a href={`/chat/${p.id}`} style={{ float: "right", color: "#742220" }}>chat →</a>
           </li>
         ))}
       </ul>
@@ -153,7 +153,7 @@ export default function BrainPage() {
 }
 
 const card: React.CSSProperties = {
-  border: "1px solid #1f2a3a",
+  border: "1px solid rgba(45,74,62,.28)",
   borderRadius: 8,
   padding: "12px 16px",
   marginBottom: 8,
@@ -161,8 +161,8 @@ const card: React.CSSProperties = {
 const btn: React.CSSProperties = {
   padding: "8px 14px",
   borderRadius: 8,
-  border: "1px solid #2b5cff",
-  background: "#2b5cff",
-  color: "white",
+  border: "1px solid #742220",
+  background: "#742220",
+  color: "#fef9e1",
   cursor: "pointer",
 };

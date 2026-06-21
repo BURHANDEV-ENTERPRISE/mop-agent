@@ -1,6 +1,7 @@
-/** GET /api/setup/status — whether the owner account has been created yet. */
-import { ownerExists } from "@/lib/auth";
+/** GET /api/setup/status — first-run state plus a non-error session check. */
+import { auth, ownerExists } from "@/lib/auth";
 
-export async function GET(): Promise<Response> {
-  return Response.json({ ownerExists: ownerExists() });
+export async function GET(req: Request): Promise<Response> {
+  const session = await auth.api.getSession({ headers: req.headers });
+  return Response.json({ ownerExists: ownerExists(), authenticated: !!session });
 }

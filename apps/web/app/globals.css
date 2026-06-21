@@ -1,0 +1,21 @@
+:root {
+  --mop-red: #742220;
+  --mop-green: #2d4a3e;
+  --mop-cream: #fef9e1;
+  --mop-paper: #fffdf2;
+  --mop-muted: #8b8b7f;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body { min-height: 100vh; }
+::selection { background: #742220; color: #fef9e1; }
+
+@media (max-width: 760px) {
+  .mop-setup-shell { grid-template-columns: 1fr !important; }
+  .mop-setup-brand { min-height: 34vh; padding: 36px !important; }
+  .mop-setup-form { border-left: 0 !important; border-top: 1px solid #2d4a3e !important; }
+  .mop-assistant-shell { grid-template-columns: 1fr !important; }
+  .mop-assistant-sidebar { display: none !important; }
+  .mop-prompt-grid { grid-template-columns: 1fr !important; }
+}

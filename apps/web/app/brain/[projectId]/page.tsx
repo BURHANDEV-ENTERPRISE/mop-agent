@@ -17,9 +17,9 @@ export default function ProjectBrainPage({ params }: { params: Promise<{ project
 
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px" }}>
-      <a href="/brain" style={{ color: "#7aa2ff" }}>← Brain</a>
+      <a href="/brain" style={{ color: "#742220" }}>← Brain</a>
       <h1 style={{ fontSize: 24 }}>{projectId}</h1>
-      <a href={`/chat/${projectId}`} style={{ color: "#7aa2ff" }}>💬 Chat with this project →</a>
+      <a href={`/chat/${projectId}`} style={{ color: "#742220" }}>💬 Chat with this project →</a>
 
       <h2 style={{ fontSize: 16, marginTop: 24, opacity: 0.8 }}>
         Recent memory ({info?.memoryCount ?? mem.length})
@@ -43,7 +43,8 @@ export default function ProjectBrainPage({ params }: { params: Promise<{ project
 }
 
 const card: React.CSSProperties = {
-  border: "1px solid #1f2a3a",
+  border: "1px solid rgba(45,74,62,.28)",
+  background: "#fffdf2",
   borderRadius: 8,
   padding: "10px 14px",
   marginBottom: 8,

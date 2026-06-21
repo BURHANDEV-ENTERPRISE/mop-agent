@@ -13,12 +13,10 @@ export default function SetupPage() {
   const [mode, setMode] = useState<"signup" | "signin">("signup");
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/setup/status").then((r) => r.json()) as Promise<{ ownerExists: boolean }>,
-      fetch("/api/me"),
-    ])
-      .then(([status, me]) => {
-        if (me.ok) {
+    fetch("/api/setup/status")
+      .then((r) => r.json() as Promise<{ ownerExists: boolean; authenticated: boolean }>)
+      .then((status) => {
+        if (status.authenticated) {
           window.location.replace("/assistant");
           return;
         }
@@ -57,10 +55,12 @@ export default function SetupPage() {
   const loading = ownerExists === null && !msg;
 
   return (
-    <main style={shell}>
-      <section style={brandPanel} aria-hidden="true" />
+    <main className="mop-setup-shell" style={shell}>
+      <section className="mop-setup-brand" style={brandPanel}>
+        <img src="/icon.svg" alt="MOP-AGENT" style={heroLogo} />
+      </section>
 
-      <section style={formWrap}>
+      <section className="mop-setup-form" style={formWrap}>
         <div style={formCard}>
           <p style={eyebrow}>{mode === "signup" ? "FIRST-RUN SETUP" : "WELCOME BACK"}</p>
           <h2 style={{ fontSize: 27, margin: "8px 0" }}>
@@ -91,7 +91,7 @@ export default function SetupPage() {
             </form>
           )}
 
-          {msg && <p role="alert" style={{ marginTop: 16, color: "#ff9b9b" }}>{msg}</p>}
+          {msg && <p role="alert" style={{ marginTop: 16, color: "#742220" }}>{msg}</p>}
 
           {!loading && (
             <p style={{ marginTop: 22, fontSize: 13, color: "#7f8da2" }}>
@@ -107,12 +107,13 @@ export default function SetupPage() {
   );
 }
 
-const shell: React.CSSProperties = { minHeight: "100vh", display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(380px, .75fr)", background: "radial-gradient(circle at 18% 12%, #17233c 0, #0b0f17 36%, #080b11 100%)" };
-const brandPanel: React.CSSProperties = { padding: "clamp(48px, 8vw, 110px)", display: "flex", flexDirection: "column", justifyContent: "center" };
-const formWrap: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", padding: 28, background: "rgba(5, 8, 13, .58)", borderLeft: "1px solid #1b2637" };
-const formCard: React.CSSProperties = { width: "min(100%, 430px)", padding: "38px 34px", border: "1px solid #243149", borderRadius: 18, background: "rgba(13, 19, 30, .94)", boxShadow: "0 24px 80px rgba(0,0,0,.35)" };
-const eyebrow: React.CSSProperties = { margin: "20px 0 0", color: "#7d9dff", fontSize: 12, fontWeight: 800, letterSpacing: ".16em" };
-const label: React.CSSProperties = { display: "grid", gap: 7, color: "#bac6d8", fontSize: 13, fontWeight: 650 };
-const inputStyle: React.CSSProperties = { padding: "12px 13px", borderRadius: 9, border: "1px solid #2a3951", outline: "none", background: "#0c121d", color: "#eef3fa", fontSize: 15 };
-const buttonStyle: React.CSSProperties = { marginTop: 4, padding: "12px 14px", borderRadius: 9, border: "1px solid #5278ff", background: "linear-gradient(135deg, #416cff, #6d54e8)", color: "white", fontWeight: 750, fontSize: 15, cursor: "pointer" };
-const textButton: React.CSSProperties = { padding: 0, border: 0, background: "none", color: "#85a1ff", cursor: "pointer" };
+const shell: React.CSSProperties = { minHeight: "100vh", display: "grid", gridTemplateColumns: "minmax(0, 1.25fr) minmax(380px, .75fr)", background: "#fef9e1" };
+const brandPanel: React.CSSProperties = { padding: "clamp(48px, 8vw, 110px)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", background: "radial-gradient(circle at 50% 45%, #49685c 0, #2d4a3e 58%, #21382f 100%)" };
+const heroLogo: React.CSSProperties = { display: "block", width: "min(72%, 560px)", height: "auto", maxHeight: "72vh", objectFit: "contain", filter: "drop-shadow(0 24px 34px rgba(0,0,0,.28))" };
+const formWrap: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", padding: 28, background: "#fef9e1", borderLeft: "1px solid #2d4a3e" };
+const formCard: React.CSSProperties = { width: "min(100%, 430px)", padding: "38px 34px", border: "1px solid rgba(45,74,62,.45)", borderRadius: 18, background: "#fffdf2", boxShadow: "0 24px 70px rgba(45,74,62,.14)" };
+const eyebrow: React.CSSProperties = { margin: "20px 0 0", color: "#742220", fontSize: 12, fontWeight: 800, letterSpacing: ".16em" };
+const label: React.CSSProperties = { display: "grid", gap: 7, color: "#2d4a3e", fontSize: 13, fontWeight: 650 };
+const inputStyle: React.CSSProperties = { padding: "12px 13px", borderRadius: 9, border: "1px solid rgba(45,74,62,.42)", outline: "none", background: "#fef9e1", color: "#2d4a3e", fontSize: 15 };
+const buttonStyle: React.CSSProperties = { marginTop: 4, padding: "12px 14px", borderRadius: 9, border: "1px solid #742220", background: "#742220", color: "#fef9e1", fontWeight: 750, fontSize: 15, cursor: "pointer" };
+const textButton: React.CSSProperties = { padding: 0, border: 0, background: "none", color: "#742220", cursor: "pointer" };

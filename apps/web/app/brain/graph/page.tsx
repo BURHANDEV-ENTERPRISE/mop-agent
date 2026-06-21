@@ -7,7 +7,7 @@ import "reactflow/dist/style.css";
 type GNode = { id: string; label: string; type: "project" | "pattern" | "skill" };
 type GEdge = { from: string; to: string };
 
-const COLOR = { project: "#2b5cff", pattern: "#1a7f4b", skill: "#a15c00" };
+const COLOR = { project: "#742220", pattern: "#2d4a3e", skill: "#9a6738" };
 
 export default function GraphPage() {
   const [data, setData] = useState<{ nodes: GNode[]; edges: GEdge[] }>({ nodes: [], edges: [] });
@@ -26,7 +26,7 @@ export default function GraphPage() {
         id: n.id,
         position: { x: col * 280, y: row * 90 },
         data: { label: `${n.type === "project" ? "📦" : n.type === "pattern" ? "🌐" : "🛠"} ${n.label}` },
-        style: { border: `1px solid ${COLOR[n.type]}`, borderRadius: 8, background: "#111824", color: "#e6edf3", fontSize: 12, width: 240 },
+        style: { border: `1px solid ${COLOR[n.type]}`, borderRadius: 8, background: "#fffdf2", color: "#2d4a3e", fontSize: 12, width: 240 },
       };
     });
   }, [data.nodes]);
@@ -39,13 +39,13 @@ export default function GraphPage() {
   return (
     <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "12px 16px" }}>
-        <a href="/brain" style={{ color: "#7aa2ff" }}>← Brain</a>{" "}
+        <a href="/brain" style={{ color: "#742220" }}>← Brain</a>{" "}
         <strong>Knowledge Graph</strong>{" "}
         <span style={{ opacity: 0.6, fontSize: 13 }}>{data.nodes.length} nodes · {data.edges.length} edges</span>
       </div>
       <div style={{ flex: 1 }}>
         <ReactFlow nodes={nodes} edges={edges} fitView>
-          <Background color="#1f2a3a" />
+          <Background color="#b8b49f" />
           <Controls />
         </ReactFlow>
       </div>

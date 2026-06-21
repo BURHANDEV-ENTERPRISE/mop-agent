@@ -39,7 +39,7 @@ export default function TeamPage() {
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "40px 24px" }}>
-      <a href="/brain" style={{ color: "#7aa2ff" }}>← Brain</a>
+      <a href="/brain" style={{ color: "#742220" }}>← Brain</a>
       <h1 style={{ fontSize: 24 }}>👥 Team</h1>
       <p style={{ opacity: 0.7 }}>You are <strong>{me?.user.email}</strong> · role <strong>{me?.role}</strong></p>
 
@@ -69,7 +69,7 @@ export default function TeamPage() {
             {invites.filter((i) => !i.usedAt).map((i) => (
               <li key={i.email} style={row}>
                 ✉️ {i.email} <span style={{ opacity: 0.5 }}>· {i.role}</span>
-                <button onClick={() => revoke(i.email)} style={{ float: "right", ...btn, background: "#7f1a1a", borderColor: "#7f1a1a", padding: "2px 10px" }}>revoke</button>
+                <button onClick={() => revoke(i.email)} style={{ float: "right", ...btn, background: "#742220", borderColor: "#742220", padding: "2px 10px" }}>revoke</button>
               </li>
             ))}
             {invites.filter((i) => !i.usedAt).length === 0 && <p style={{ opacity: 0.5 }}>None.</p>}
@@ -81,6 +81,6 @@ export default function TeamPage() {
   );
 }
 
-const row: React.CSSProperties = { border: "1px solid #1f2a3a", borderRadius: 8, padding: "8px 12px", marginBottom: 6 };
-const inp: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid #1f2a3a", background: "#111824", color: "#e6edf3" };
-const btn: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "1px solid #2b5cff", background: "#2b5cff", color: "white", cursor: "pointer" };
+const row: React.CSSProperties = { border: "1px solid rgba(45,74,62,.28)", borderRadius: 8, padding: "8px 12px", marginBottom: 6, background: "#fffdf2" };
+const inp: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid rgba(45,74,62,.32)", background: "#fffdf2", color: "#2d4a3e" };
+const btn: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "1px solid #742220", background: "#742220", color: "#fef9e1", cursor: "pointer" };

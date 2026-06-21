@@ -33,10 +33,10 @@ export default function SettingsPage() {
 
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "48px 24px" }}>
-      <a href="/assistant" style={{ color: "#7aa2ff" }}>← Assistant</a>
+      <a href="/assistant" style={{ color: "#742220" }}>← Assistant</a>
       <h1 style={{ fontSize: 24 }}>⚙️ Provider settings</h1>
 
-      <div style={{ border: "1px solid #1f2a3a", borderRadius: 8, padding: 14, margin: "12px 0", opacity: 0.9 }}>
+      <div style={{ border: "1px solid rgba(45,74,62,.28)", borderRadius: 8, padding: 14, margin: "12px 0", opacity: 0.9, background: "#fffdf2" }}>
         {config.configured
           ? <>Active: <strong>{config.provider}</strong>{config.model ? ` · ${config.model}` : ""} · key {config.keyHint}</>
           : "No provider key saved yet — chat uses the offline echo provider."}
@@ -59,5 +59,5 @@ export default function SettingsPage() {
   );
 }
 
-const inp: React.CSSProperties = { padding: "10px 12px", borderRadius: 8, border: "1px solid #1f2a3a", background: "#111824", color: "#e6edf3" };
-const btn: React.CSSProperties = { padding: "10px 12px", borderRadius: 8, border: "1px solid #2b5cff", background: "#2b5cff", color: "white", cursor: "pointer" };
+const inp: React.CSSProperties = { padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(45,74,62,.32)", background: "#fffdf2", color: "#2d4a3e" };
+const btn: React.CSSProperties = { padding: "10px 12px", borderRadius: 8, border: "1px solid #742220", background: "#742220", color: "#fef9e1", cursor: "pointer" };

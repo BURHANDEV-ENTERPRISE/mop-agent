@@ -72,13 +72,13 @@ export default function ChatPage({ params }: { params: Promise<{ projectId: stri
 
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", height: "90vh" }}>
-      <a href={`/brain/${projectId}`} style={{ color: "#7aa2ff" }}>← {projectId}</a>
+      <a href={`/brain/${projectId}`} style={{ color: "#742220" }}>← {projectId}</a>
       <h1 style={{ fontSize: 20 }}>💬 Chat · {projectId}</h1>
 
-      <div style={{ flex: 1, overflowY: "auto", border: "1px solid #1f2a3a", borderRadius: 8, padding: 16, margin: "12px 0" }}>
+      <div style={{ flex: 1, overflowY: "auto", border: "1px solid rgba(45,74,62,.28)", borderRadius: 8, padding: 16, margin: "12px 0", background: "#fffdf2" }}>
         {turns.map((t, i) => (
           <div key={i} style={{ marginBottom: 14 }}>
-            <strong style={{ color: t.role === "user" ? "#e6edf3" : "#7aa2ff" }}>{t.role === "user" ? "you" : "agent"}</strong>
+            <strong style={{ color: t.role === "user" ? "#2d4a3e" : "#742220" }}>{t.role === "user" ? "you" : "agent"}</strong>
             <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{t.content || "…"}</div>
           </div>
         ))}
@@ -91,7 +91,7 @@ export default function ChatPage({ params }: { params: Promise<{ projectId: stri
         </label>
         <span style={{ fontSize: 13 }}>
           {saveMsg && <span style={{ opacity: 0.6, marginRight: 8 }}>{saveMsg}</span>}
-          <button onClick={saveLastToMemory} disabled={turns.length === 0} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #1f2a3a", background: "#111824", color: "#e6edf3", cursor: "pointer" }}>
+          <button onClick={saveLastToMemory} disabled={turns.length === 0} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(45,74,62,.32)", background: "#fffdf2", color: "#2d4a3e", cursor: "pointer" }}>
             💾 Save to memory
           </button>
         </span>
@@ -102,9 +102,9 @@ export default function ChatPage({ params }: { params: Promise<{ projectId: stri
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Ask about this project…"
-          style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #1f2a3a", background: "#111824", color: "#e6edf3" }}
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(45,74,62,.32)", background: "#fffdf2", color: "#2d4a3e" }}
         />
-        <button onClick={send} disabled={busy} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #2b5cff", background: "#2b5cff", color: "white", cursor: "pointer" }}>
+        <button onClick={send} disabled={busy} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #742220", background: "#742220", color: "#fef9e1", cursor: "pointer" }}>
           {busy ? "…" : "Send"}
         </button>
       </div>
