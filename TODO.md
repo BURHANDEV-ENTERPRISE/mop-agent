@@ -1,15 +1,15 @@
 # MOP-AGENT — Release Handoff
 
-> Updated 2026-06-21 after the npm packaging fix. This file records what is
+> Updated 2026-06-22 after the shared-shell navigation refresh. This file records what is
 > ready, the exact publish sequence, and the remaining production hardening.
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.10` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.13` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: publish `0.1.10` after the release checks below
-- Tarball: 96 runtime files, about 162 kB compressed / 592 kB unpacked
+- npm registry status: publish `0.1.13` after the release checks below
+- Tarball: 99 runtime files, about 164 kB compressed / 600 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
@@ -106,7 +106,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.10`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.13`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 
@@ -184,6 +184,19 @@ Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `
   sections via JS, not navigation) so they look identical to Assistant/Brain.
   Removed the dead `.mop-settings-nav` / `.mop-settings-sidebar` CSS. The
   "← BACK TO WORKSPACE" + account card are unchanged at the bottom.
+
+## Shared shell refresh (DONE — shipping in 0.1.13)
+
+- [x] Remove the Assistant `MEMORY SCOPE` selector; chat uses cross-project
+  memory by default and project linking remains available in Brain.
+- [x] Put each protected page title in the center of the shared topbar.
+- [x] Remove the duplicated left topbar title, `MOP MEMORYCORE`, role badge,
+  and hard-coded version badge from every protected page.
+- [x] Refresh the shared sidebar with compact ChatGPT-inspired navigation:
+  New chat, Brain, linked project memory, admin Settings, and the member card.
+- [x] Keep the Assistant welcome content centered and responsive in the main pane.
+- [x] Verify with TypeScript, a production Next.js build, and authenticated
+  production-DOM assertions for both removed and required elements.
 
 ## Answer: "dah lengkap ke?"
 

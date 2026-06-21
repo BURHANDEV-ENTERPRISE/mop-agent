@@ -12,13 +12,9 @@ export type AppViewer = {
 };
 
 export type Project = { id: string; name: string; status: string };
-export type ProviderState = { configured: boolean; provider?: string; model?: string | null };
 
 interface MemoryCoreContextType {
-  selectedProject: string;
-  setSelectedProject: (id: string) => void;
   projects: Project[];
-  provider: ProviderState;
   settingsSection: "providers" | "users";
   setSettingsSection: (section: "providers" | "users") => void;
 }
@@ -27,9 +23,7 @@ const MemoryCoreContext = createContext<MemoryCoreContextType | undefined>(undef
 
 export function useMemoryCore() {
   const context = useContext(MemoryCoreContext);
-  if (!context) {
-    throw new Error("useMemoryCore must be used within a MemoryCoreProvider");
-  }
+  if (!context) throw new Error("useMemoryCore must be used within a MemoryCoreProvider");
   return context;
 }
 
@@ -46,22 +40,17 @@ function pageTitle(pathname: string): string {
 export function AppShell({ viewer, children }: { viewer: AppViewer; children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [settingsSection, setSettingsSection] = useState<"providers" | "users">("providers");
   const isAdmin = viewer.role === "owner";
+  const isSettings = pathname.startsWith("/settings");
   const title = pageTitle(pathname);
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [provider, setProvider] = useState<ProviderState>({ configured: false });
-  const [selectedProject, setSelectedProject] = useState("");
-  const [settingsSection, setSettingsSection] = useState<"providers" | "users">("providers");
-
   useEffect(() => {
-    Promise.all([
-      fetch("/api/projects").then((r) => r.json()),
-      fetch("/api/providers").then((r) => r.json()),
-    ]).then(([projectData, providerData]) => {
-      setProjects(projectData.projects ?? []);
-      setProvider(providerData.config ?? { configured: false });
-    }).catch(() => {});
+    fetch("/api/projects")
+      .then((response) => response.json())
+      .then((data) => setProjects(data.projects ?? []))
+      .catch(() => {});
 
     const requested = new URLSearchParams(window.location.search).get("section");
     if (requested === "users") setSettingsSection("users");
@@ -72,21 +61,13 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
     window.location.replace("/login");
   }
 
-  const selectSection = (sec: "providers" | "users") => {
-    setSettingsSection(sec);
-    const url = sec === "providers" ? "/settings" : "/settings?section=users";
-    window.history.replaceState(null, "", url);
-  };
-
-  const isSettings = pathname.startsWith("/settings");
-
-  const nav = [
-    { href: "/assistant", label: "Assistant", icon: "✦", active: pathname.startsWith("/assistant") || pathname.startsWith("/chat/") },
-    { href: "/brain", label: "Brain", icon: "◉", active: pathname.startsWith("/brain") },
-  ];
+  function selectSection(section: "providers" | "users") {
+    setSettingsSection(section);
+    window.history.replaceState(null, "", section === "providers" ? "/settings" : "/settings?section=users");
+  }
 
   return (
-    <MemoryCoreContext.Provider value={{ selectedProject, setSelectedProject, projects, provider, settingsSection, setSettingsSection }}>
+    <MemoryCoreContext.Provider value={{ projects, settingsSection, setSettingsSection }}>
       <div className="mop-app-frame">
         <header className="mop-app-topbar">
           <a className="mop-app-brand" href="/assistant" aria-label="MOP-AGENT home">
@@ -103,99 +84,70 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
             >
               ☰
             </button>
-            {pathname === "/assistant" ? (
-              <div className="mop-assistant-toolbar">
-                <div className="mop-assistant-status">
-                  <span className="mop-live-dot" />
-                  <strong>LIVE ASSISTANT</strong>
-                  <span className="mop-assistant-provider">
-                    {provider.configured ? `${provider.provider}${provider.model ? ` · ${provider.model}` : ""}` : "offline demo"}
-                  </span>
-                </div>
-                <label className="mop-assistant-scope">
-                  MEMORY SCOPE
-                  <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)}>
-                    <option value="">All memory</option>
-                    {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                  </select>
-                </label>
-              </div>
-            ) : (
-              <>
-                <div className="mop-topbar-title">
-                  <span className="mop-live-dot" />
-                  <strong>{title}</strong>
-                </div>
-                <div className="mop-topbar-center">MOP MEMORYCORE</div>
-                <div className="mop-topbar-meta">
-                  <span>{isAdmin ? "ADMIN" : "MEMBER"}</span>
-                  <span className="mop-version">v0.1.12</span>
-                </div>
-              </>
-            )}
+            <div className="mop-topbar-center">
+              <span className="mop-live-dot" />
+              <strong>{title}</strong>
+            </div>
           </div>
         </header>
 
         {menuOpen && <button className="mop-sidebar-scrim" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />}
 
         <aside className={`mop-app-sidebar${menuOpen ? " is-open" : ""}`}>
-          {isSettings ? (
-            <div className="mop-nav-section">
-              <p>SETTINGS</p>
+          <nav className="mop-sidebar-primary" aria-label="Workspace">
+            <a href="/assistant" className={pathname.startsWith("/assistant") || pathname.startsWith("/chat/") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
+              <span className="mop-nav-icon">✎</span>
+              <span>New chat</span>
+            </a>
+            <a href="/brain" className={pathname.startsWith("/brain") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
+              <span className="mop-nav-icon">◉</span>
+              <span>Brain</span>
+            </a>
+          </nav>
+
+          <div className="mop-nav-section mop-project-memory">
+            <p>PROJECT MEMORY</p>
+            <nav>
+              {projects.slice(0, 8).map((project) => (
+                <a key={project.id} href={`/brain/${project.id}`} className={pathname === `/brain/${project.id}` ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
+                  <span className="mop-project-dot" data-online={project.status === "online"} />
+                  <span className="mop-nav-label">{project.name}</span>
+                </a>
+              ))}
+              {projects.length === 0 && <span className="mop-sidebar-empty">No linked projects yet</span>}
+            </nav>
+          </div>
+
+          {isAdmin && (
+            <div className="mop-nav-section mop-admin-nav">
+              <p>ADMIN</p>
               <nav>
-                <button className={settingsSection === "providers" ? "is-active" : ""} onClick={() => { selectSection("providers"); setMenuOpen(false); }}>
-                  <span className="mop-nav-icon">◇</span>
-                  <span>Providers</span>
-                </button>
-                <button className={settingsSection === "users" ? "is-active" : ""} onClick={() => { selectSection("users"); setMenuOpen(false); }}>
-                  <span className="mop-nav-icon">♙</span>
-                  <span>Users</span>
-                </button>
+                <a href="/settings" className={isSettings ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
+                  <span className="mop-nav-icon">⚙</span>
+                  <span>Settings</span>
+                </a>
+                {isSettings && (
+                  <div className="mop-settings-subnav">
+                    <button className={settingsSection === "providers" ? "is-active" : ""} onClick={() => { selectSection("providers"); setMenuOpen(false); }}>
+                      <span>Providers</span>
+                    </button>
+                    <button className={settingsSection === "users" ? "is-active" : ""} onClick={() => { selectSection("users"); setMenuOpen(false); }}>
+                      <span>Users</span>
+                    </button>
+                  </div>
+                )}
               </nav>
             </div>
-          ) : (
-            <>
-              <div className="mop-nav-section">
-                <p>WORKSPACE</p>
-                <nav>
-                  {nav.map((item) => (
-                    <a key={item.href} href={item.href} className={item.active ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
-                      <span className="mop-nav-icon">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </a>
-                  ))}
-                </nav>
-              </div>
-
-              {isAdmin && (
-                <div className="mop-nav-section">
-                  <p>ADMIN</p>
-                  <nav>
-                    <a href="/settings" className={pathname.startsWith("/settings") ? "is-active" : ""} onClick={() => setMenuOpen(false)}>
-                      <span className="mop-nav-icon">⚙</span>
-                      <span>Settings</span>
-                    </a>
-                  </nav>
-                </div>
-              )}
-            </>
           )}
 
           <div className="mop-sidebar-spacer" />
-
-          {isSettings && (
-            <a href="/assistant" className="mop-back-workspace-btn">
-              <span>← BACK TO WORKSPACE</span>
-            </a>
-          )}
-
           <button className="mop-account-card" type="button" onClick={logout} title="Sign out">
             <span className="mop-account-avatar">{viewer.name.slice(0, 1).toUpperCase()}</span>
             <span className="mop-account-copy">
               <strong>{viewer.name}</strong>
               <small>{isAdmin ? "Administrator" : "Member"}</small>
             </span>
-            <span aria-hidden="true">↪</span>
+            <span aria-hidden="true">•••</span>
           </button>
         </aside>
 
@@ -204,4 +156,3 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
     </MemoryCoreContext.Provider>
   );
 }
-

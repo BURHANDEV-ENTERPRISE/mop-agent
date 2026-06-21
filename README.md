@@ -5,8 +5,9 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** npm package `mop-agent@0.1.10` contains the corrected VPS
-> installer, one-time Admin setup/login flow, and shared retro application shell.
+> **Release status:** release candidate `mop-agent@0.1.13` contains the corrected VPS
+> installer, one-time Admin setup/login flow, and simplified shared application shell
+> with centered page titles and ChatGPT-inspired navigation.
 > The canonical installation command is exactly `npx mop-agent`.
 
 ## Current status

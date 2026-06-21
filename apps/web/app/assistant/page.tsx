@@ -7,7 +7,7 @@ import { useMemoryCore } from "@/components/AppShell";
 type Turn = { role: "user" | "assistant"; content: string };
 
 export default function AssistantPage() {
-  const { selectedProject, setSelectedProject, projects, provider } = useMemoryCore();
+  const { projects } = useMemoryCore();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [name, setName] = useState("Admin");
   const [input, setInput] = useState("");
@@ -34,8 +34,7 @@ export default function AssistantPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         message,
-        projectId: selectedProject || undefined,
-        allowCrossProject: !selectedProject,
+        allowCrossProject: true,
       }),
     });
 
@@ -120,7 +119,7 @@ export default function AssistantPage() {
           <button onClick={() => send()} disabled={busy || !input.trim()} style={{ ...sendButton, opacity: busy || !input.trim() ? .45 : 1 }}>↑</button>
         </div>
         <div style={{ textAlign: "center", color: "rgba(45,74,62,.62)", fontSize: 11, marginTop: 8 }}>
-          {providerUsed ? `Answered by ${providerUsed} · ` : ""}{selectedProject ? "Selected project memory" : "Cross-project memory"}
+          {providerUsed ? `Answered by ${providerUsed} · ` : ""}Cross-project memory
         </div>
       </div>
     </section>
