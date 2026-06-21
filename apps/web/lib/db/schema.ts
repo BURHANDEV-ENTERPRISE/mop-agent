@@ -62,6 +62,15 @@ export const channelBinding = sqliteTable("channel_binding", {
   updatedAt: integer("updated_at").notNull(),
 });
 
+/** Per-owner AI provider config; apiKeyEnc is AES-256-GCM encrypted at rest. */
+export const providerConfig = sqliteTable("provider_config", {
+  ownerId: text("owner_id").primaryKey(),
+  provider: text("provider").notNull(), // "anthropic" | "openrouter"
+  apiKeyEnc: text("api_key_enc").notNull(),
+  model: text("model"),
+  updatedAt: integer("updated_at").notNull(),
+});
+
 /** Procedural memory — reusable how-to / skills (Fasa 5). Shared across projects. */
 export const skill = sqliteTable("skill", {
   id: text("id").primaryKey(),

@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS channel_binding (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS provider_config (
+  owner_id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  api_key_enc TEXT NOT NULL,
+  model TEXT,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS skill (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
