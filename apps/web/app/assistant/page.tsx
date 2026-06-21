@@ -19,6 +19,7 @@ export default function AssistantPage() {
   const [history, setHistory] = useState<SavedChat[]>([]);
   const [historyReady, setHistoryReady] = useState(false);
   const [activeChatId, setActiveChatId] = useState("");
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function AssistantPage() {
     try {
       const stored = JSON.parse(window.localStorage.getItem(CHAT_HISTORY_KEY) ?? "[]");
       if (Array.isArray(stored)) setHistory(stored.slice(0, 30));
+      setHistoryCollapsed(window.localStorage.getItem("mop-agent-history-collapsed") === "1");
     } catch {
       window.localStorage.removeItem(CHAT_HISTORY_KEY);
     } finally {
@@ -76,6 +78,13 @@ export default function AssistantPage() {
     if (busy) return;
     setHistory((current) => current.filter((chat) => chat.id !== id));
     if (activeChatId === id) startNewChat();
+  }
+
+  function toggleHistory() {
+    setHistoryCollapsed((collapsed) => {
+      window.localStorage.setItem("mop-agent-history-collapsed", collapsed ? "0" : "1");
+      return !collapsed;
+    });
   }
 
   async function send(prefill?: string) {
@@ -124,7 +133,7 @@ export default function AssistantPage() {
   }
 
   return (
-    <section className="mop-assistant-page">
+    <section className={`mop-assistant-page${historyCollapsed ? " is-history-collapsed" : ""}`}>
       <div className="mop-assistant-workspace">
         <div className="mop-assistant-conversation">
           {turns.length === 0 ? (
@@ -184,11 +193,20 @@ export default function AssistantPage() {
 
       <aside className="mop-chat-history" aria-label="Chat history">
         <div className="mop-chat-history-header">
-          <div>
-            <span>MEMORY LOG</span>
-            <strong>Chat history</strong>
+          <strong>Chat history</strong>
+          <div className="mop-chat-history-actions">
+            <button
+              className="mop-chat-history-collapse"
+              type="button"
+              onClick={toggleHistory}
+              aria-label={historyCollapsed ? "Expand chat history" : "Collapse chat history"}
+              aria-expanded={!historyCollapsed}
+              title={historyCollapsed ? "Expand chat history" : "Collapse chat history"}
+            >
+              {historyCollapsed ? "‹" : "›"}
+            </button>
+            <button className="mop-chat-history-new" type="button" onClick={startNewChat} disabled={busy} title="Start a new chat">＋</button>
           </div>
-          <button type="button" onClick={startNewChat} disabled={busy} title="Start a new chat">＋</button>
         </div>
         <div className="mop-chat-history-list">
           {history.length === 0 ? (

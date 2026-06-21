@@ -5,11 +5,11 @@
 
 ## Current release snapshot
 
-- Package: `mop-agent@0.1.14` (`0.1.1` attempted an unsafe npm self-update)
+- Package: `mop-agent@0.1.15` (`0.1.1` attempted an unsafe npm self-update)
 - Canonical command: exactly `npx mop-agent`
 - npm user on this machine: `moonwiraja`
-- npm registry status: `0.1.13` is live; publish `0.1.14` after the release checks below
-- Tarball: 99 runtime files, about 165 kB compressed / 606 kB unpacked
+- npm registry status: `0.1.14` is live; publish `0.1.15` after the release checks below
+- Tarball: 99 runtime files, about 166 kB compressed / 612 kB unpacked
 - Runtime backend: SQLite + sqlite-vec (PostgreSQL is not installed)
 - Default durable location: `/opt/mop-agent`
 - The npm package contains the application runtime; it does not clone or depend
@@ -106,7 +106,7 @@ npm view mop-agent version
 npx mop-agent --version
 ```
 
-Expected publish identity: `mop-agent@0.1.14`. Stop if npm shows
+Expected publish identity: `mop-agent@0.1.15`. Stop if npm shows
 `mop-agent-monorepo`, more than the controlled runtime files, an `.env`, a
 database, cache, test fixtures, or any secret.
 
@@ -205,6 +205,15 @@ Palette: ink `#2d4a3e`, cream `#fef9e1`/`#fffdf2`, accent red `#742220`, muted `
 - [x] Keep the MOP-AGENT logo linked to `/assistant` as the application home action.
 - [x] Add a functional right-side chat history panel to Assistant with local persistence,
   conversation restore, delete, and new-chat actions.
+
+## Collapsible navigation correction (DONE — shipping in 0.1.15)
+
+- [x] Remove the `MEMORY LOG` kicker from the Chat History header.
+- [x] Add a persistent desktop collapse/expand control beside the MOP-AGENT brand
+  for the shared left sidebar.
+- [x] Add an independent collapse/expand control inside the right Chat History panel.
+- [x] Keep mobile navigation on its existing drawer behavior regardless of the saved
+  desktop collapse preference.
 
 ## Answer: "dah lengkap ke?"
 

@@ -40,6 +40,7 @@ function pageTitle(pathname: string): string {
 export function AppShell({ viewer, children }: { viewer: AppViewer; children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [settingsSection, setSettingsSection] = useState<"providers" | "users">("providers");
   const isAdmin = viewer.role === "owner";
@@ -54,6 +55,7 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
 
     const requested = new URLSearchParams(window.location.search).get("section");
     if (requested === "users") setSettingsSection("users");
+    setSidebarCollapsed(window.localStorage.getItem("mop-agent-sidebar-collapsed") === "1");
   }, []);
 
   async function logout() {
@@ -66,14 +68,33 @@ export function AppShell({ viewer, children }: { viewer: AppViewer; children: Re
     window.history.replaceState(null, "", section === "providers" ? "/settings" : "/settings?section=users");
   }
 
+  function toggleSidebar() {
+    setSidebarCollapsed((collapsed) => {
+      window.localStorage.setItem("mop-agent-sidebar-collapsed", collapsed ? "0" : "1");
+      return !collapsed;
+    });
+  }
+
   return (
     <MemoryCoreContext.Provider value={{ projects, settingsSection, setSettingsSection }}>
-      <div className="mop-app-frame">
+      <div className={`mop-app-frame${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
         <header className="mop-app-topbar">
-          <a className="mop-app-brand" href="/assistant" aria-label="MOP-AGENT home">
-            <img src="/icon.svg" alt="" />
-            <span>MOP-AGENT</span>
-          </a>
+          <div className="mop-app-brand-cell">
+            <a className="mop-app-brand" href="/assistant" aria-label="MOP-AGENT home">
+              <img src="/icon.svg" alt="" />
+              <span>MOP-AGENT</span>
+            </a>
+            <button
+              className="mop-sidebar-collapse-toggle"
+              type="button"
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-expanded={!sidebarCollapsed}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              onClick={toggleSidebar}
+            >
+              {sidebarCollapsed ? "›" : "‹"}
+            </button>
+          </div>
           <div className="mop-app-topbar-main">
             <button
               className="mop-menu-toggle"

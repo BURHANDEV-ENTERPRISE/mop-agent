@@ -121,15 +121,22 @@ button {
   box-shadow: 0 2px 0 rgba(45, 74, 62, .28);
 }
 
+.mop-app-brand-cell {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  border-right: 1px solid rgba(254, 249, 225, .16);
+}
+
 .mop-app-brand {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 9px;
   min-width: 0;
-  padding: 7px 14px;
+  padding: 7px 46px 7px 14px;
   color: var(--mop-cream);
   text-decoration: none;
-  border-right: 1px solid rgba(254, 249, 225, .16);
 }
 
 .mop-app-brand img {
@@ -147,6 +154,51 @@ button {
   letter-spacing: .055em;
   white-space: nowrap;
 }
+
+.mop-sidebar-collapse-toggle {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  z-index: 2;
+  width: 29px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid rgba(254, 249, 225, .25);
+  background: rgba(254, 249, 225, .08);
+  color: var(--mop-cream);
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.mop-sidebar-collapse-toggle:hover:not(:disabled) { transform: translate(-1px, calc(-50% - 1px)); }
+.mop-sidebar-collapse-toggle:active:not(:disabled) { transform: translate(1px, calc(-50% + 1px)); }
+
+.mop-app-frame,
+.mop-app-topbar { transition: grid-template-columns 140ms steps(4, end); }
+
+.mop-app-frame.is-sidebar-collapsed { grid-template-columns: 74px minmax(0, 1fr); }
+.mop-app-frame.is-sidebar-collapsed .mop-app-topbar { grid-template-columns: 74px minmax(0, 1fr); }
+.mop-app-frame.is-sidebar-collapsed .mop-app-brand { justify-content: center; padding: 7px; }
+.mop-app-frame.is-sidebar-collapsed .mop-app-brand img { width: 47px; height: 47px; }
+.mop-app-frame.is-sidebar-collapsed .mop-app-brand span,
+.mop-app-frame.is-sidebar-collapsed .mop-nav-section > p,
+.mop-app-frame.is-sidebar-collapsed .mop-sidebar-primary a > span:not(.mop-nav-icon),
+.mop-app-frame.is-sidebar-collapsed .mop-nav-section a > span:not(.mop-nav-icon),
+.mop-app-frame.is-sidebar-collapsed .mop-nav-section button > span:not(.mop-nav-icon),
+.mop-app-frame.is-sidebar-collapsed .mop-account-copy,
+.mop-app-frame.is-sidebar-collapsed .mop-account-card > span:last-child,
+.mop-app-frame.is-sidebar-collapsed .mop-back-workspace-btn > span { display: none; }
+.mop-app-frame.is-sidebar-collapsed .mop-sidebar-collapse-toggle { right: -14px; }
+.mop-app-frame.is-sidebar-collapsed .mop-app-sidebar { padding-inline: 9px; }
+.mop-app-frame.is-sidebar-collapsed .mop-sidebar-primary a,
+.mop-app-frame.is-sidebar-collapsed .mop-nav-section a,
+.mop-app-frame.is-sidebar-collapsed .mop-nav-section button,
+.mop-app-frame.is-sidebar-collapsed .mop-account-card { justify-content: center; padding-inline: 5px; }
+.mop-app-frame.is-sidebar-collapsed .mop-nav-icon { width: auto; }
+.mop-app-frame.is-sidebar-collapsed .mop-back-workspace-btn::before { content: "←"; }
 
 .mop-app-topbar-main {
   position: relative;
@@ -371,7 +423,10 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 290px;
   overflow: hidden;
+  transition: grid-template-columns 140ms steps(4, end);
 }
+
+.mop-assistant-page.is-history-collapsed { grid-template-columns: minmax(0, 1fr) 52px; }
 
 .mop-assistant-workspace {
   min-width: 0;
@@ -425,15 +480,8 @@ button {
   border-bottom: 1px solid rgba(45, 74, 62, .24);
 }
 
-.mop-chat-history-header > div { display: grid; gap: 3px; }
-.mop-chat-history-header span {
-  color: var(--mop-red);
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: .16em;
-}
 .mop-chat-history-header strong { font-family: "SFMono-Regular", Consolas, monospace; font-size: 15px; }
+.mop-chat-history-actions { display: flex; gap: 6px; }
 .mop-chat-history-header button {
   width: 34px;
   height: 34px;
@@ -443,6 +491,19 @@ button {
   font-size: 20px;
   cursor: pointer;
 }
+.mop-chat-history-collapse { background: var(--mop-green) !important; }
+.mop-chat-history-new { background: var(--mop-red) !important; }
+
+.mop-assistant-page.is-history-collapsed .mop-chat-history { padding: 12px 8px; }
+.mop-assistant-page.is-history-collapsed .mop-chat-history-header {
+  justify-content: center;
+  padding: 0 0 12px;
+  border-bottom: 0;
+}
+.mop-assistant-page.is-history-collapsed .mop-chat-history-header > strong,
+.mop-assistant-page.is-history-collapsed .mop-chat-history-new,
+.mop-assistant-page.is-history-collapsed .mop-chat-history-list { display: none; }
+.mop-assistant-page.is-history-collapsed .mop-chat-history-actions { display: block; }
 
 .mop-chat-history-list {
   min-height: 0;
@@ -541,7 +602,10 @@ button {
     grid-template-rows: 62px minmax(0, 1fr);
     grid-template-areas: "topbar" "main";
   }
+  .mop-app-frame.is-sidebar-collapsed { grid-template-columns: 1fr; }
   .mop-app-topbar { grid-template-columns: 66px minmax(0, 1fr); }
+  .mop-app-frame.is-sidebar-collapsed .mop-app-topbar { grid-template-columns: 66px minmax(0, 1fr); }
+  .mop-sidebar-collapse-toggle { display: none; }
   .mop-app-brand { justify-content: center; padding: 5px; }
   .mop-app-brand img { width: 49px; height: 49px; }
   .mop-app-brand span { display: none; }
@@ -559,6 +623,18 @@ button {
     transition: transform 160ms steps(4, end);
   }
   .mop-app-sidebar.is-open { transform: translateX(0); }
+  .mop-app-frame.is-sidebar-collapsed .mop-nav-section > p { display: block; }
+  .mop-app-frame.is-sidebar-collapsed .mop-sidebar-primary a > span:not(.mop-nav-icon),
+  .mop-app-frame.is-sidebar-collapsed .mop-nav-section a > span:not(.mop-nav-icon),
+  .mop-app-frame.is-sidebar-collapsed .mop-nav-section button > span:not(.mop-nav-icon),
+  .mop-app-frame.is-sidebar-collapsed .mop-back-workspace-btn > span { display: inline; }
+  .mop-app-frame.is-sidebar-collapsed .mop-account-copy { display: grid; }
+  .mop-app-frame.is-sidebar-collapsed .mop-account-card > span:last-child { display: inline; }
+  .mop-app-frame.is-sidebar-collapsed .mop-sidebar-primary a,
+  .mop-app-frame.is-sidebar-collapsed .mop-nav-section a,
+  .mop-app-frame.is-sidebar-collapsed .mop-nav-section button,
+  .mop-app-frame.is-sidebar-collapsed .mop-account-card { justify-content: flex-start; padding-inline: 11px; }
+  .mop-app-frame.is-sidebar-collapsed .mop-back-workspace-btn::before { content: none; }
   .mop-sidebar-scrim {
     display: block;
     position: fixed;
@@ -568,7 +644,8 @@ button {
     background: rgba(20, 34, 29, .56);
   }
   .mop-app-main { min-height: calc(100vh - 62px); }
-  .mop-assistant-page { height: calc(100vh - 62px); min-height: 520px; grid-template-columns: minmax(0, 1fr); }
+  .mop-assistant-page,
+  .mop-assistant-page.is-history-collapsed { height: calc(100vh - 62px); min-height: 520px; grid-template-columns: minmax(0, 1fr); }
   .mop-chat-history { display: none; }
   .mop-assistant-conversation { padding: 0 16px; }
   .mop-assistant-composer-wrap { padding: 26px 12px 12px; }
