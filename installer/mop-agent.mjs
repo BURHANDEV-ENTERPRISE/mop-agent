@@ -12,7 +12,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { chmodSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { chmodSync, writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { dirname, resolve } from "node:path";
@@ -100,6 +100,57 @@ function runSteps(steps, options = {}) {
 
 function q(value) {
   return `'${String(value).replaceAll("'", `'"'"'`)}'`;
+}
+
+function readRuntimeConfig() {
+  const envPath = `${APP_DIR}/apps/web/.env`;
+  if (!existsSync(envPath)) throw new Error(`Runtime environment is missing: ${envPath}`);
+  const env = {};
+  for (const raw of readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const at = line.indexOf("=");
+    if (at < 1) continue;
+    env[line.slice(0, at)] = line.slice(at + 1).replace(/^(['"])(.*)\1$/, "$2");
+  }
+  const port = env.PORT || "3000";
+  if (!isValidPort(port)) throw new Error(`Invalid PORT in ${envPath}: ${port}`);
+  let publicUrl;
+  try {
+    publicUrl = new URL(env.BETTER_AUTH_URL || `http://localhost:${port}`);
+  } catch {
+    throw new Error(`Invalid BETTER_AUTH_URL in ${envPath}`);
+  }
+  return { env, port, publicUrl };
+}
+
+/** Restore the installer-owned vhost after every update, including TLS. */
+function reconcileNginx() {
+  const os = detectOS();
+  const { port, publicUrl } = readRuntimeConfig();
+  const domain = publicUrl.hostname;
+  if (!isValidDomain(domain) && domain !== "localhost") {
+    throw new Error(`Invalid domain in BETTER_AUTH_URL: ${domain}`);
+  }
+  const nginx = nginxPaths(os.family);
+  const certDir = `/etc/letsencrypt/live/${domain}`;
+  const hasTls = publicUrl.protocol === "https:" && existsSync(`${certDir}/fullchain.pem`) && existsSync(`${certDir}/privkey.pem`);
+  const vhost = hasTls ? renderNginxTlsVhost({ domain, port }) : renderNginxVhost({ domain, port });
+
+  console.log(c("cyan", "▸ Restore nginx reverse proxy"));
+  writeConf(nginx.conf, vhost, { privileged: true });
+  runSteps([
+    ...(nginx.enabled ? [{ label: "Enable nginx vhost", cmd: `ln -sf ${nginx.conf} ${nginx.enabled}` }] : []),
+    { label: "Verify nginx configuration", cmd: "nginx -t" },
+    { label: "Enable + start nginx", cmd: "systemctl enable --now nginx" },
+    { label: "Reload nginx", cmd: "systemctl reload nginx" },
+    { label: "Verify local application", cmd: `curl --fail --silent --show-error --max-time 15 ${q(`http://127.0.0.1:${port}/api/setup/status`)} >/dev/null` },
+    {
+      label: "Verify domain reverse proxy",
+      cmd: `curl --fail --silent --show-error --max-time 15 --resolve ${q(`${domain}:${hasTls ? "443" : "80"}:127.0.0.1`)} ${q(`${hasTls ? "https" : "http"}://${domain}/api/setup/status`)} >/dev/null`,
+    },
+  ], { privileged: true });
+  return { domain, port, protocol: hasTls ? "https" : "http" };
 }
 
 // ---- commands ----------------------------------------------------------
@@ -242,21 +293,29 @@ function cmdUpdate() {
     { label: "Start new service", cmd: "systemctl start mop-agent", privileged: true },
     { label: "Verify service", cmd: "sleep 2 && systemctl is-active --quiet mop-agent", privileged: true },
   ]);
-  console.log(c("green", "\n✓ updated, rebuilt, and service verified\n"));
+  const proxy = reconcileNginx();
+  console.log(c("green", `\n✓ updated and verified through ${proxy.protocol}://${proxy.domain}\n`));
 }
 
 function cmdStatus() {
   banner();
   if (!printInstallLocations()) return;
+  let runtime;
+  try { runtime = readRuntimeConfig(); } catch { runtime = null; }
+  const os = detectOS();
+  const nginx = nginxPaths(os.family);
   const checks = [
     ["service", "systemctl is-active mop-agent 2>/dev/null || echo inactive"],
     ["nginx", "systemctl is-active nginx 2>/dev/null || echo inactive"],
+    ["nginx conf", `test -f ${q(nginx.conf)} && echo present || echo missing`],
+    ...(nginx.enabled ? [["nginx link", `test -L ${q(nginx.enabled)} && echo present || echo missing`]] : []),
     [".env", existsSync(`${APP_DIR}/apps/web/.env`) ? "echo present" : "echo missing"],
+    ...(runtime ? [["local app", `curl --silent --output /dev/null --write-out '%{http_code}' --max-time 5 ${q(`http://127.0.0.1:${runtime.port}/api/setup/status`)} || echo failed`]] : []),
   ];
   for (const [label, cmd] of checks) {
     const r = run(cmd, { capture: true });
     const val = DRY ? "(dry-run)" : r.stdout.trim();
-    console.log(`  ${label.padEnd(10)} ${val === "active" || val === "present" ? c("green", val) : c("yellow", val)}`);
+    console.log(`  ${label.padEnd(10)} ${val === "active" || val === "present" || val === "200" ? c("green", val) : c("yellow", val)}`);
   }
   console.log("");
 }

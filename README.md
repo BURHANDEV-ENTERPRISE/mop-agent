@@ -5,8 +5,8 @@ through MOP-FLOW. It stores project memory, performs semantic recall and
 consolidation, serves grounded chat, and can request approved actions from a
 linked FLOW node.
 
-> **Release status:** npm package `mop-agent@0.1.8` contains the corrected VPS
-> installer, first-run Admin/Assistant flow, and shared retro application shell.
+> **Release status:** npm package `mop-agent@0.1.10` contains the corrected VPS
+> installer, one-time Admin setup/login flow, and shared retro application shell.
 > The canonical installation command is exactly `npx mop-agent`.
 
 ## Current status
@@ -55,7 +55,8 @@ The first run copies the npm-packaged runtime from the temporary npx cache into
 
 - `Install` — installs nginx/Certbot and immediately continues through the
   complete domain, SQLite, HTTPS, and systemd setup.
-- `Update` — updates only MOP-AGENT, migrates/builds, and restarts it.
+- `Update` — migrates/builds/restarts MOP-AGENT, restores the installer-owned
+  nginx vhost, reloads nginx, and verifies both local and domain proxy health.
 - `Status` — reports service health and filesystem locations.
 - `Delete` — removes the service and nginx configuration while preserving data
   unless purge is explicitly requested.
@@ -63,12 +64,15 @@ The first run copies the npm-packaged runtime from the temporary npx cache into
 After installation, open the configured URL in a browser. The application flow
 is intentionally separate from the server installer:
 
-1. On a fresh database, `/` redirects to **Create Admin account**.
+1. On a fresh database, `/setup` shows **Create Admin account** once.
 2. Creating the first Admin also signs that account in.
-3. Returning users are shown the login form.
-4. Successful setup/login opens the main **Assistant**. It can be used before
+3. After an Admin exists, `/setup` always redirects to `/login` when signed out
+   or `/assistant` when already signed in.
+4. Admin creates ready-to-login accounts under **Settings → Users**; there is
+   no public invited-account signup link.
+5. Successful setup/login opens the main **Assistant**. It can be used before
    any project is linked; Brain is the optional memory/project control surface.
-5. Add OpenRouter or Anthropic under **Providers** for full model responses.
+6. Add OpenRouter or Anthropic under **Settings → Providers** for full model responses.
    Until then, the built-in offline echo provider confirms the chat pipeline.
 
 During `setup`, choose one deployment mode:

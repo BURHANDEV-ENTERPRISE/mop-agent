@@ -2,14 +2,13 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
+import { useMemoryCore } from "@/components/AppShell";
 
-type Section = "providers" | "users";
 type Masked = { configured: boolean; provider?: string; model?: string | null; keyHint?: string };
 type Member = { id: string; email: string; name: string; role: string };
-type Invite = { email: string; role: string; expiresAt: number; usedAt: number | null };
 
 export default function SettingsPage() {
-  const [section, setSection] = useState<Section>("providers");
+  const { settingsSection: section } = useMemoryCore();
   const [config, setConfig] = useState<Masked>({ configured: false });
   const [env, setEnv] = useState<{ anthropic: boolean; openrouter: boolean }>({ anthropic: false, openrouter: false });
   const [provider, setProvider] = useState<"anthropic" | "openrouter">("openrouter");
@@ -17,8 +16,9 @@ export default function SettingsPage() {
   const [model, setModel] = useState("");
   const [providerMsg, setProviderMsg] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
+  const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState<"member" | "owner">("member");
   const [userMsg, setUserMsg] = useState("");
 
@@ -31,21 +31,13 @@ export default function SettingsPage() {
 
   function loadUsers() {
     fetch("/api/members").then((r) => (r.ok ? r.json() : { members: [] })).then((data) => setMembers(data.members ?? [])).catch(() => {});
-    fetch("/api/invites").then((r) => (r.ok ? r.json() : { invites: [] })).then((data) => setInvites(data.invites ?? [])).catch(() => {});
   }
 
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("section");
-    if (requested === "users") setSection("users");
     loadProvider();
     loadUsers();
   }, []);
 
-  function chooseSection(next: Section) {
-    setSection(next);
-    const url = next === "providers" ? "/settings" : "/settings?section=users";
-    window.history.replaceState(null, "", url);
-  }
 
   async function saveProvider(e: React.FormEvent) {
     e.preventDefault();
@@ -61,21 +53,21 @@ export default function SettingsPage() {
     if (response.ok) setConfig(data.config);
   }
 
-  async function invite(e: React.FormEvent) {
+  async function createUser(e: React.FormEvent) {
     e.preventDefault();
-    setUserMsg("Creating invite…");
-    const response = await fetch("/api/invites", {
+    setUserMsg("Creating user…");
+    const response = await fetch("/api/members", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({ name: userName, email, password, role }),
     });
-    setUserMsg(response.ok ? `Invite created for ${email}.` : `Unable to invite (error ${response.status}).`);
-    if (response.ok) setEmail("");
-    loadUsers();
-  }
-
-  async function revoke(inviteEmail: string) {
-    await fetch(`/api/invites?email=${encodeURIComponent(inviteEmail)}`, { method: "DELETE" });
+    const data = await response.json();
+    setUserMsg(response.ok ? `User ${email} created and ready to sign in.` : `Unable to create user: ${data.error ?? response.status}`);
+    if (response.ok) {
+      setUserName("");
+      setEmail("");
+      setPassword("");
+    }
     loadUsers();
   }
 
@@ -91,15 +83,6 @@ export default function SettingsPage() {
       </header>
 
       <div className="mop-settings-grid">
-        <aside className="mop-settings-nav mop-panel" aria-label="Settings sections">
-          <button className={section === "providers" ? "is-active" : ""} onClick={() => chooseSection("providers")}>
-            <span>◇</span><strong>Providers</strong>
-          </button>
-          <button className={section === "users" ? "is-active" : ""} onClick={() => chooseSection("users")}>
-            <span>♙</span><strong>Users</strong>
-          </button>
-        </aside>
-
         <section className="mop-settings-content mop-panel">
           {section === "providers" ? (
             <>
@@ -166,28 +149,20 @@ export default function SettingsPage() {
                 </table>
               </div>
 
-              <div style={invitePanel}>
-                <h3 style={{ margin: 0, fontSize: 15 }}>Invite a user</h3>
-                <form onSubmit={invite} style={{ display: "grid", gridTemplateColumns: "minmax(180px,1fr) 130px auto", gap: 9, marginTop: 13 }} className="mop-user-invite-form">
+              <div style={userPanel}>
+                <h3 style={{ margin: 0, fontSize: 15 }}>Add a user</h3>
+                <p style={{ ...muted, margin: "6px 0 0", fontSize: 12 }}>Create the account here, then give the user their email and temporary password.</p>
+                <form onSubmit={createUser} style={{ display: "grid", gridTemplateColumns: "minmax(140px,.8fr) minmax(190px,1fr) minmax(150px,.8fr) 110px auto", gap: 9, marginTop: 13 }} className="mop-user-invite-form">
+                  <input placeholder="Display name" required value={userName} onChange={(e) => setUserName(e.target.value)} style={inputStyle} />
                   <input placeholder="user@example.com" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+                  <input placeholder="Temporary password" type="password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
                   <select value={role} onChange={(e) => setRole(e.target.value as "member" | "owner")} style={inputStyle}>
                     <option value="member">Member</option>
                     <option value="owner">Admin</option>
                   </select>
-                  <button type="submit" style={primaryButton}>CREATE INVITE</button>
+                  <button type="submit" style={primaryButton}>ADD USER</button>
                 </form>
                 {userMsg && <p style={messageStyle}>{userMsg}</p>}
-              </div>
-
-              <h3 style={{ margin: "26px 0 10px", fontSize: 14 }}>Pending invites</h3>
-              <div style={{ display: "grid", gap: 7 }}>
-                {invites.filter((item) => !item.usedAt).map((item) => (
-                  <div key={item.email} style={inviteRow}>
-                    <span><strong>{item.email}</strong><small style={{ ...muted, marginLeft: 8 }}>{item.role === "owner" ? "admin" : "member"}</small></span>
-                    <button onClick={() => revoke(item.email)} style={secondaryButton}>REVOKE</button>
-                  </div>
-                ))}
-                {invites.filter((item) => !item.usedAt).length === 0 && <p style={muted}>No pending invites.</p>}
               </div>
             </>
           )}
@@ -207,11 +182,9 @@ const formGrid: CSSProperties = { display: "grid", gap: 13, marginTop: 20 };
 const labelStyle: CSSProperties = { display: "grid", gap: 6, color: "#742220", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 11, fontWeight: 800, letterSpacing: ".07em", textTransform: "uppercase" };
 const inputStyle: CSSProperties = { width: "100%", minHeight: 40, padding: "9px 11px", border: "1px solid rgba(45,74,62,.4)", background: "#fffdf2", color: "#2d4a3e" };
 const primaryButton: CSSProperties = { minHeight: 40, padding: "9px 15px", border: "1px solid #742220", background: "#742220", color: "#fef9e1", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 10, fontWeight: 900, cursor: "pointer" };
-const secondaryButton: CSSProperties = { padding: "6px 10px", border: "1px solid #742220", background: "transparent", color: "#742220", fontSize: 9, fontWeight: 900, cursor: "pointer" };
 const messageStyle: CSSProperties = { padding: "9px 11px", borderLeft: "3px solid #742220", background: "rgba(116,34,32,.06)", fontSize: 13 };
 const tableStyle: CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 13 };
 const miniAvatar: CSSProperties = { width: 28, height: 28, display: "inline-grid", placeItems: "center", marginRight: 9, background: "#2d4a3e", color: "#fef9e1", fontWeight: 900 };
 const ownerRole: CSSProperties = { padding: "4px 7px", background: "#742220", color: "#fef9e1", fontSize: 9, fontWeight: 900 };
 const memberRole: CSSProperties = { ...ownerRole, color: "#2d4a3e", background: "rgba(45,74,62,.12)" };
-const invitePanel: CSSProperties = { marginTop: 26, padding: 16, border: "1px solid rgba(45,74,62,.27)", background: "rgba(254,249,225,.55)" };
-const inviteRow: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 10, border: "1px solid rgba(45,74,62,.22)" };
+const userPanel: CSSProperties = { marginTop: 26, padding: 16, border: "1px solid rgba(45,74,62,.27)", background: "rgba(254,249,225,.55)" };

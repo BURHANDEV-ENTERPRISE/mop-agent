@@ -1,36 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, signUp } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 
-type SetupStatus = { ownerExists: boolean; authenticated: boolean };
-
-async function getSetupStatus(): Promise<SetupStatus> {
-  const response = await fetch(`/api/setup/status?t=${Date.now()}`, {
-    cache: "no-store",
-    credentials: "include",
-    headers: { "cache-control": "no-cache" },
-  });
-  if (!response.ok) throw new Error(`setup status ${response.status}`);
-  return response.json() as Promise<SetupStatus>;
-}
+type SetupStatus = { authenticated: boolean };
 
 async function waitForSession(): Promise<boolean> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
-      if ((await getSetupStatus()).authenticated) return true;
+      const response = await fetch(`/api/setup/status?t=${Date.now()}`, { cache: "no-store", credentials: "include" });
+      const status = await response.json() as SetupStatus;
+      if (status.authenticated) return true;
     } catch {
-      // Allow a short deployment/network gap before falling back to Login.
+      // Retry a short proxy/session propagation gap.
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   return false;
 }
 
-export default function SetupPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -38,22 +29,18 @@ export default function SetupPage() {
     e.preventDefault();
     setBusy(true);
     setMsg("");
-
-    const result = await signUp.email({ email, password, name: name.trim() || email });
+    const result = await signIn.email({ email, password });
     if (result.error) {
-      setMsg(result.error.message ?? "Admin setup failed.");
+      setMsg(result.error.message ?? "Sign in failed.");
       setBusy(false);
       return;
     }
-
-    // Better Auth normally creates the session during signup. Explicitly sign
-    // in once if a proxy/browser did not retain that first response cookie.
-    if (!(await waitForSession())) await signIn.email({ email, password });
     if (await waitForSession()) {
       window.location.replace(`/assistant?auth=${Date.now()}`);
       return;
     }
-    window.location.replace("/login?admin-created=1");
+    setMsg("Sign in succeeded, but the session cookie was not accepted. Use the configured domain and HTTPS address.");
+    setBusy(false);
   }
 
   return (
@@ -61,28 +48,22 @@ export default function SetupPage() {
       <section className="mop-setup-brand" style={brandPanel}>
         <img src="/icon.svg" alt="MOP-AGENT" style={heroLogo} />
       </section>
-
       <section className="mop-setup-form" style={formWrap}>
         <div style={formCard}>
-          <p style={eyebrow}>FIRST-RUN SETUP</p>
-          <h1 style={{ fontSize: 27, margin: "8px 0" }}>Create Admin account</h1>
-          <p style={description}>This one-time account controls providers, users, projects, and system memory.</p>
-
+          <p style={eyebrow}>WELCOME BACK</p>
+          <h1 style={{ fontSize: 27, margin: "8px 0" }}>Sign in to MOP-AGENT</h1>
+          <p style={description}>Use the account created for you by the Administrator.</p>
           <form onSubmit={submit} style={{ display: "grid", gap: 14, marginTop: 28 }}>
-            <label style={label}>Display name
-              <input placeholder="Admin" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-            </label>
             <label style={label}>Email
-              <input placeholder="admin@example.com" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+              <input placeholder="you@example.com" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
             </label>
             <label style={label}>Password
-              <input placeholder="Minimum 8 characters" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
+              <input placeholder="Your password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
             </label>
             <button type="submit" disabled={busy} style={{ ...buttonStyle, opacity: busy ? 0.65 : 1 }}>
-              {busy ? "Creating Admin…" : "Create Admin & continue"}
+              {busy ? "Signing in…" : "Sign in"}
             </button>
           </form>
-
           {msg && <p role="alert" style={{ marginTop: 16, color: "#742220" }}>{msg}</p>}
         </div>
       </section>

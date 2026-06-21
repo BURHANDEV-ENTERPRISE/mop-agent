@@ -10,7 +10,7 @@ export async function requirePageSession() {
   if (!ownerExists()) redirect("/setup");
 
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect("/setup");
+  if (!session) redirect("/login");
   return session;
 }
 

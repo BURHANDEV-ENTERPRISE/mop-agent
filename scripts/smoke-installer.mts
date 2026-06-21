@@ -6,6 +6,7 @@ import {
   detectOS, renderNginxVhost, renderNginxTlsVhost, renderSystemdUnit, planInstallDeps, planSsl,
   nginxPaths, installPaths, isValidDomain, isValidEmail, isValidPort,
 } from "../installer/lib.mjs";
+import { readFileSync } from "node:fs";
 
 function main() {
   const os = detectOS();
@@ -19,6 +20,7 @@ function main() {
   const debianNginx = nginxPaths("debian");
   const rhelNginx = nginxPaths("rhel");
   const paths = installPaths("/opt/mop-agent", "debian");
+  const installer = readFileSync(new URL("../installer/mop-agent.mjs", import.meta.url), "utf8");
 
   console.log(`[test] nginx has proxy_pass+ws-upgrade: ${nginx.includes("proxy_pass http://127.0.0.1:3000") && nginx.includes('Connection "upgrade"')}`);
   console.log(`[test] systemd auto-restart: ${systemd.includes("Restart=always") && systemd.includes("WantedBy=multi-user.target")}`);
@@ -28,6 +30,7 @@ function main() {
   console.log(`[test] input validation: ${isValidDomain("agent.example.com") && !isValidDomain("bad;rm") && isValidEmail("a@example.com") && !isValidEmail("bad;@x.com") && isValidPort("3000") && !isValidPort("70000")}`);
   console.log(`[test] distro nginx paths: ${debianNginx.conf.includes("sites-available") && rhelNginx.conf.includes("conf.d")}`);
   console.log(`[test] canonical paths displayed: ${paths["app code"] === "/opt/mop-agent" && paths["systemd unit"] === "/etc/systemd/system/mop-agent.service"}`);
+  console.log(`[test] update repairs + verifies nginx: ${installer.includes("reconcileNginx()") && installer.includes("Verify domain reverse proxy") && installer.includes("systemctl enable --now nginx")}`);
 
   const ok =
     !!os.family &&
@@ -40,7 +43,8 @@ function main() {
     isValidEmail("a@example.com") && !isValidEmail("bad;@x.com") &&
     isValidPort("3000") && !isValidPort("70000") &&
     debianNginx.conf.includes("sites-available") && rhelNginx.conf.includes("conf.d") &&
-    paths["app code"] === "/opt/mop-agent" && paths["systemd unit"] === "/etc/systemd/system/mop-agent.service";
+    paths["app code"] === "/opt/mop-agent" && paths["systemd unit"] === "/etc/systemd/system/mop-agent.service" &&
+    installer.includes("reconcileNginx()") && installer.includes("Verify domain reverse proxy") && installer.includes("systemctl enable --now nginx");
 
   console.log(`\n[test] ${ok ? "PASS ✅" : "FAIL ❌"}`);
   process.exit(ok ? 0 : 1);

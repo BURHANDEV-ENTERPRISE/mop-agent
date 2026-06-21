@@ -2,16 +2,13 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useMemoryCore } from "@/components/AppShell";
 
 type Turn = { role: "user" | "assistant"; content: string };
-type Project = { id: string; name: string; status: string };
-type ProviderState = { configured: boolean; provider?: string; model?: string | null };
 
 export default function AssistantPage() {
+  const { selectedProject, setSelectedProject, projects, provider } = useMemoryCore();
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState("");
-  const [provider, setProvider] = useState<ProviderState>({ configured: false });
   const [name, setName] = useState("Admin");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,16 +16,11 @@ export default function AssistantPage() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/projects").then((r) => r.json()),
-      fetch("/api/providers").then((r) => r.json()),
-      fetch("/api/me").then((r) => r.json()),
-    ]).then(([projectData, providerData, me]) => {
-      setProjects(projectData.projects ?? []);
-      setProvider(providerData.config ?? { configured: false });
+    fetch("/api/me").then((r) => r.json()).then((me) => {
       setName(me.user?.name || me.user?.email || "Admin");
     }).catch(() => {});
   }, []);
+
 
   async function send(prefill?: string) {
     const message = (prefill ?? input).trim();
@@ -77,22 +69,6 @@ export default function AssistantPage() {
 
   return (
     <section className="mop-assistant-page">
-      <div className="mop-assistant-toolbar">
-        <div>
-          <strong style={{ fontFamily: '"SFMono-Regular", Consolas, monospace', color: "#742220" }}>LIVE ASSISTANT</strong>
-          <span style={{ color: "rgba(45,74,62,.62)", marginLeft: 10, fontSize: 12 }}>
-            {provider.configured ? `${provider.provider}${provider.model ? ` · ${provider.model}` : ""}` : "offline demo"}
-          </span>
-        </div>
-        <label style={{ color: "#2d4a3e", fontSize: 12 }}>
-          MEMORY SCOPE&nbsp;
-          <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={selectStyle}>
-            <option value="">All memory</option>
-            {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-          </select>
-        </label>
-      </div>
-
       <div className="mop-assistant-conversation">
         {turns.length === 0 ? (
           <div className="mop-assistant-welcome">
@@ -152,7 +128,7 @@ export default function AssistantPage() {
 }
 
 const selectStyle: CSSProperties = { color: "#2d4a3e", border: "1px solid rgba(45,74,62,.42)", padding: "6px 8px", background: "#fffdf2" };
-const assistantLogo: CSSProperties = { width: 86, height: 86, display: "grid", placeItems: "center", overflow: "hidden", background: "#2d4a3e", border: "2px solid #742220", boxShadow: "5px 5px 0 rgba(45,74,62,.18)" };
+const assistantLogo: CSSProperties = { width: 86, height: 86, display: "grid", placeItems: "center" };
 const promptGrid: CSSProperties = { width: "min(100%, 650px)", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 28 };
 const promptCard: CSSProperties = { display: "flex", justifyContent: "space-between", padding: "14px 15px", border: "1px solid rgba(45,74,62,.38)", borderBottomWidth: 3, background: "#fffdf2", color: "#2d4a3e", cursor: "pointer", textAlign: "left" };
 const botAvatar: CSSProperties = { width: 32, height: 32, display: "grid", placeItems: "center", background: "#742220", color: "#fef9e1" };
