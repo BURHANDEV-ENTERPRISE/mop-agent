@@ -13,7 +13,8 @@ import { dataDir } from "../db/paths";
 export type GatewayLink = {
   projectLinkId: string;
   channel: string; // realtime:<projectLinkId>
-  realtimeToken: string; // scoped Supabase Realtime JWT
+  realtimeUrl: string; // wss://<ref>.supabase.co/realtime/v1/websocket (address only, from gateway)
+  realtimeToken: string; // scoped Supabase Realtime JWT — used as BOTH apikey + access_token
   expiresIn: number; // seconds
   obtainedAt: number; // epoch ms
 };

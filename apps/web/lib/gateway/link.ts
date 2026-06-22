@@ -17,6 +17,7 @@ export { gatewayUrl } from "./device";
 type AgentLinkResponse = {
   projectLinkId: string;
   channel: string;
+  realtimeUrl: string;
   realtimeToken: string;
   expiresIn: number;
 };
@@ -49,6 +50,7 @@ export async function linkAgent(
   const link: GatewayLink = {
     projectLinkId: out.projectLinkId,
     channel: out.channel,
+    realtimeUrl: out.realtimeUrl,
     realtimeToken: out.realtimeToken,
     expiresIn: out.expiresIn,
     obtainedAt: Date.now(),

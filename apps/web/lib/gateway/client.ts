@@ -12,9 +12,14 @@
  * JWT refresh: re-calls linkAgent ~60s before expiry and sends a new
  * access_token update to stay subscribed without a reconnect.
  *
- * Env:
- *   MOP_GATEWAY_SUPABASE_URL       https://<ref>.supabase.co  (gateway's project)
- *   MOP_GATEWAY_SUPABASE_ANON_KEY  public anon key (safe to share)
+ * SECURITY: mop-agent NEVER holds the gateway's Supabase anon key. The gateway
+ * hands us a short-lived (1h), channel-locked JWT during the link handshake and
+ * we use it as BOTH the connection `apikey` and the channel `access_token`.
+ * Even if a client install is compromised, the JWT expires fast and RLS limits
+ * it to its one channel — no broader Supabase / data access. The realtimeUrl is
+ * an address only (no credential), delivered by the private gateway.
+ *
+ * No Supabase env vars required — everything comes from the stored GatewayLink.
  */
 import WebSocket from "ws";
 import { getGatewayLink, isExpired, type GatewayLink } from "./store";
@@ -32,11 +37,11 @@ type PhxMsg = {
   join_ref: string | null;
 };
 
-function realtimeWsUrl(): string {
-  const base = (process.env.MOP_GATEWAY_SUPABASE_URL ?? "").replace(/\/$/, "");
-  const key = process.env.MOP_GATEWAY_SUPABASE_ANON_KEY ?? "";
-  if (!base || !key) throw new Error("Set MOP_GATEWAY_SUPABASE_URL + MOP_GATEWAY_SUPABASE_ANON_KEY");
-  return `${base.replace(/^https?/, "wss")}/realtime/v1/websocket?vsn=1.0.0&apikey=${key}`;
+/** Build the Realtime WS URL from the gateway-supplied address + scoped JWT (used as apikey). */
+function wsUrlFor(link: GatewayLink): string {
+  if (!link.realtimeUrl) throw new Error("link.realtimeUrl missing — re-link this project (gateway handshake)");
+  const base = link.realtimeUrl.replace(/\/+$/, "");
+  return `${base}?vsn=1.0.0&apikey=${encodeURIComponent(link.realtimeToken)}`;
 }
 
 function send(ws: WebSocket, msg: PhxMsg): void {
@@ -54,6 +59,7 @@ export function subscribeProject(projectLinkId: string): () => void {
   let refreshTimer: ReturnType<typeof setTimeout> | null = null;
   let ref = 0;
   let cancelled = false;
+  let backoff = 2_000; // persists across reconnects; reset to 2s on a successful open
 
   const topic = `realtime:${projectLinkId}`;
 
@@ -97,15 +103,13 @@ export function subscribeProject(projectLinkId: string): () => void {
       return;
     }
 
-    let backoff = 2_000;
-
     const open = () => {
       if (cancelled) return;
       try {
-        ws = new WebSocket(realtimeWsUrl());
+        ws = new WebSocket(wsUrlFor(link));
       } catch (e) {
         console.error(`[gateway/client] ws init error:`, e);
-        setTimeout(open, backoff);
+        setTimeout(connect, backoff); // re-resolve link (fresh JWT) on retry
         backoff = Math.min(backoff * 2, 30_000);
         return;
       }
@@ -153,9 +157,10 @@ export function subscribeProject(projectLinkId: string): () => void {
 
       ws.on("close", () => {
         if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+        if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
         if (!cancelled) {
           console.warn(`[gateway/client] ${projectLinkId}: disconnected, retry in ${backoff}ms`);
-          setTimeout(open, backoff);
+          setTimeout(connect, backoff); // re-resolve link (fresh JWT) on every reconnect
           backoff = Math.min(backoff * 2, 30_000);
         }
       });
