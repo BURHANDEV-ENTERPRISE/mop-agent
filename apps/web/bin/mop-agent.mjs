@@ -72,8 +72,18 @@ async function main() {
       console.log(`added ${id}`);
       break;
     }
+    case "gateway-link": {
+      const [projectLinkId] = rest;
+      if (!projectLinkId) return fail("usage: mop-agent gateway-link <projectLinkId>");
+      const { linkAgent, gatewayUrl } = await import("../lib/gateway/link.js");
+      const link = await linkAgent(projectLinkId);
+      console.log(`🔗 linked ${link.projectLinkId} @ ${gatewayUrl()}`);
+      console.log(`   channel: ${link.channel}`);
+      console.log(`   realtime JWT: ${link.realtimeToken.slice(0, 24)}… (expires in ${link.expiresIn}s)`);
+      break;
+    }
     default:
-      console.log("commands: migrate | status | projects | consolidate | skills | skill-add");
+      console.log("commands: migrate | status | projects | consolidate | skills | skill-add | gateway-link");
   }
 }
 
