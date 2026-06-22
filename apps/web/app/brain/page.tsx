@@ -15,7 +15,8 @@ type Action = { id: string; projectId: string; tool: string; summary: string; st
 
 export default function BrainPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [code, setCode] = useState("");
+  const [pairInfo, setPairInfo] = useState<{ pairingKey: string; projectLinkId: string } | null>(null);
+  const [pairError, setPairError] = useState("");
   const [notes, setNotes] = useState<SemanticNote[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
   const [consolidating, setConsolidating] = useState(false);
@@ -51,9 +52,15 @@ export default function BrainPage() {
   }
 
   async function generateCode() {
-    const response = await fetch("/api/link/code", { method: "POST" });
+    setPairInfo(null);
+    setPairError("");
+    const response = await fetch("/api/gateway/projects", { method: "POST" });
     const result = await response.json();
-    setCode(response.ok ? result.code : `error: ${result.error}`);
+    if (response.ok) {
+      setPairInfo({ pairingKey: result.pairingKey, projectLinkId: result.projectLinkId });
+    } else {
+      setPairError(result.error ?? "gateway_error");
+    }
   }
 
   async function consolidate() {
@@ -107,9 +114,13 @@ export default function BrainPage() {
           <span>Generate a one-time pairing code for MOP-FLOW.</span>
         </div>
         <button type="button" onClick={generateCode}>＋ LINK PROJECT</button>
-        {code && (
-          <code>mop-flow-dev link --url {typeof window !== "undefined" ? window.location.origin : ""} --code {code} --project &lt;id&gt;</code>
+        {pairInfo && (
+          <div className="mop-pair-info">
+            <code>mop-flow link --key {pairInfo.pairingKey}</code>
+            <small>Channel: {pairInfo.projectLinkId}</small>
+          </div>
         )}
+        {pairError && <small className="mop-pair-error">Error: {pairError}</small>}
       </section>
 
       <div className="mop-brain-columns">

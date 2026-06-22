@@ -8,18 +8,11 @@
  * This is the HANDSHAKE only — the live snapshot/tool transport over Supabase
  * Realtime is wired separately. Until then the legacy reverse-WSS link
  * (lib/ws/gateway.ts) keeps working unchanged.
- *
- * Env:
- *   GATEWAY_URL           default https://mop-gateway.burhan.my
- *   GATEWAY_DEVICE_TOKEN  token shown once by the gateway dashboard "Enroll agent"
  */
 import { saveGatewayLink, type GatewayLink } from "./store";
+import { getDeviceToken, gatewayUrl } from "./device";
 
-export const DEFAULT_GATEWAY_URL = "https://mop-gateway.burhan.my";
-
-export function gatewayUrl(): string {
-  return (process.env.GATEWAY_URL ?? DEFAULT_GATEWAY_URL).replace(/\/+$/, "");
-}
+export { gatewayUrl } from "./device";
 
 type AgentLinkResponse = {
   projectLinkId: string;
@@ -37,9 +30,9 @@ export async function linkAgent(
   opts: { gateway?: string; deviceToken?: string } = {},
 ): Promise<GatewayLink> {
   const base = (opts.gateway ?? gatewayUrl()).replace(/\/+$/, "");
-  const token = opts.deviceToken ?? process.env.GATEWAY_DEVICE_TOKEN ?? "";
+  const token = opts.deviceToken ?? getDeviceToken();
   if (!token) {
-    throw new Error("missing_device_token: set GATEWAY_DEVICE_TOKEN (gateway dashboard → Enroll agent)");
+    throw new Error("missing_device_token: enroll agent first (gateway dashboard → Enroll agent)");
   }
 
   const res = await fetch(`${base}/v1/api/link/agent`, {

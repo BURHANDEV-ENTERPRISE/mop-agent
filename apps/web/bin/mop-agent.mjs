@@ -82,8 +82,24 @@ async function main() {
       console.log(`   realtime JWT: ${link.realtimeToken.slice(0, 24)}… (expires in ${link.expiresIn}s)`);
       break;
     }
+    case "gateway-unlink": {
+      const [projectLinkId] = rest;
+      if (!projectLinkId) return fail("usage: mop-agent gateway-unlink <projectLinkId>");
+      const { getDeviceToken, gatewayUrl } = await import("../lib/gateway/device.js");
+      const token = getDeviceToken();
+      if (!token) return fail("agent not enrolled — set GATEWAY_DEVICE_TOKEN or save via gateway-device.json");
+      const res = await fetch(`${gatewayUrl()}/api/agent/projects`, {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ projectLinkId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return fail(`unlink failed (${res.status}): ${JSON.stringify(data)}`);
+      console.log(`✅ unlinked ${projectLinkId}`);
+      break;
+    }
     default:
-      console.log("commands: migrate | status | projects | consolidate | skills | skill-add | gateway-link");
+      console.log("commands: migrate | status | projects | consolidate | skills | skill-add | gateway-link | gateway-unlink");
   }
 }
 
