@@ -34,7 +34,11 @@ export function attachGateway(server: Server): WebSocketServer {
   const wss = new WebSocketServer({ server, path: LINK_WS_PATH });
 
   wss.on("connection", (ws, req) => {
-    const token = (req.headers["authorization"] ?? "").toString().replace(/^Bearer\s+/i, "");
+    // Token from the Authorization header (the `ws` client) OR a `?token=` query
+    // param (browser/undici WebSocket clients can't set custom headers).
+    const headerToken = (req.headers["authorization"] ?? "").toString().replace(/^Bearer\s+/i, "");
+    const queryToken = new URL(req.url ?? "/", "http://localhost").searchParams.get("token") ?? "";
+    const token = headerToken || queryToken;
     const proj = findProjectByToken(token);
     if (!proj) {
       ws.close(4001, "unauthorized");

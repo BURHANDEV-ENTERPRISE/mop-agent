@@ -15,7 +15,7 @@ type Action = { id: string; projectId: string; tool: string; summary: string; st
 
 export default function BrainPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [pairInfo, setPairInfo] = useState<{ pairingKey: string; projectLinkId: string } | null>(null);
+  const [linkCmd, setLinkCmd] = useState("");
   const [pairError, setPairError] = useState("");
   const [notes, setNotes] = useState<SemanticNote[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
@@ -52,14 +52,15 @@ export default function BrainPage() {
   }
 
   async function generateCode() {
-    setPairInfo(null);
+    setLinkCmd("");
     setPairError("");
-    const response = await fetch("/api/gateway/projects", { method: "POST" });
+    const response = await fetch("/api/link/code", { method: "POST" });
     const result = await response.json();
     if (response.ok) {
-      setPairInfo({ pairingKey: result.pairingKey, projectLinkId: result.projectLinkId });
+      const base = typeof window !== "undefined" ? window.location.origin : "";
+      setLinkCmd(`npx mop-flow link ${base}/v1/api/link/${result.code}`);
     } else {
-      setPairError(result.error ?? "gateway_error");
+      setPairError(result.error ?? "error");
     }
   }
 
@@ -114,10 +115,10 @@ export default function BrainPage() {
           <span>Generate a one-time pairing code for MOP-FLOW.</span>
         </div>
         <button type="button" onClick={generateCode}>＋ LINK PROJECT</button>
-        {pairInfo && (
+        {linkCmd && (
           <div className="mop-pair-info">
-            <code>mop-flow link --key {pairInfo.pairingKey}</code>
-            <small>Channel: {pairInfo.projectLinkId}</small>
+            <code>{linkCmd}</code>
+            <small>Run this in your project. One-time code, expires in 10 min.</small>
           </div>
         )}
         {pairError && <small className="mop-pair-error">Error: {pairError}</small>}
