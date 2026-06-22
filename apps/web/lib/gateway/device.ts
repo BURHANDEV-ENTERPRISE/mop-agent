@@ -56,3 +56,32 @@ export function saveDeviceToken(deviceToken: string, url: string = DEFAULT_GATEW
   writeFileSync(p, JSON.stringify({ deviceToken, gatewayUrl: url }, null, 2), "utf8");
   try { chmodSync(p, 0o600); } catch { /* Windows: rely on profile ACL */ }
 }
+
+/**
+ * Return the device token, SELF-ENROLLING transparently on first use.
+ *
+ * The gateway is a zero-setup relay: the client never logs into the dashboard
+ * or pastes a token. If no token exists yet, mint one via POST /v1/api/link/enroll
+ * and persist it locally, so every later call reuses the same identity (needed
+ * for single-binding). Throws only if the gateway is unreachable / rejects.
+ */
+export async function ensureDeviceToken(opts: { gateway?: string; label?: string } = {}): Promise<string> {
+  const existing = getDeviceToken();
+  if (existing) return existing;
+
+  const base = (opts.gateway ?? gatewayUrl()).replace(/\/+$/, "");
+  const res = await fetch(`${base}/v1/api/link/enroll`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ label: opts.label ?? "mop-agent" }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`enroll_failed:${res.status}:${text}`);
+  }
+
+  const { deviceToken } = (await res.json()) as { deviceToken?: string };
+  if (!deviceToken) throw new Error("enroll_failed: gateway returned no token");
+  saveDeviceToken(deviceToken, base);
+  return deviceToken;
+}

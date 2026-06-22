@@ -8,17 +8,20 @@
  */
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/authz";
-import { getDeviceToken, gatewayUrl } from "@/lib/gateway/device";
+import { ensureDeviceToken, gatewayUrl } from "@/lib/gateway/device";
 
 export async function POST(req: Request): Promise<Response> {
   const a = await requireRole(req, ["owner"]);
   if (!a.ok) return a.response;
 
-  const deviceToken = getDeviceToken();
-  if (!deviceToken) {
+  // Zero-setup: self-enroll transparently on first use (no dashboard, no token paste).
+  let deviceToken: string;
+  try {
+    deviceToken = await ensureDeviceToken();
+  } catch (e) {
     return NextResponse.json(
-      { error: "agent_not_registered", hint: "Enroll this agent first via the gateway dashboard." },
-      { status: 412 },
+      { error: "enroll_failed", hint: "Could not reach the gateway to register this agent.", detail: String(e) },
+      { status: 502 },
     );
   }
 
