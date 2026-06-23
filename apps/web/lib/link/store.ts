@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { Capabilities, ProjectManifest } from "@mop/link-protocol";
 import { getDb } from "../db/client";
-import { project, pairingCode } from "../db/schema";
+import { project, pairingCode, projectMirror, memoryEntry } from "../db/schema";
 
 export type ProjectRecord = {
   id: string;
@@ -82,6 +82,15 @@ export function setProjectStatus(id: string, status: ProjectRecord["status"]): v
 
 export function listProjects(): ProjectRecord[] {
   return getDb().select().from(project).all().map(toRecord);
+}
+
+/** Disconnect a project: drop its link, mirror and mirrored memory. Frees the id for re-linking. */
+export function removeProject(id: string): boolean {
+  const db = getDb();
+  const res = db.delete(project).where(eq(project.id, id)).run();
+  db.delete(projectMirror).where(eq(projectMirror.projectId, id)).run();
+  db.delete(memoryEntry).where(eq(memoryEntry.projectId, id)).run();
+  return res.changes > 0;
 }
 
 function toRecord(row: typeof project.$inferSelect): ProjectRecord {

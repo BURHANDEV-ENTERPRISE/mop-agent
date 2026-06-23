@@ -43,6 +43,9 @@ export default function GraphPage() {
   const [consolidating, setConsolidating] = useState(false);
   const [consolidateMsg, setConsolidateMsg] = useState("");
 
+  const [menuFor, setMenuFor] = useState<string | null>(null); // tab id whose ⋮ menu is open
+  const [tabMsg, setTabMsg] = useState("");
+
   const seenProjects = useRef<Set<string> | null>(null);
 
   // ── restore tabs ─────────────────────────────────────────────────────────
@@ -224,6 +227,39 @@ export default function GraphPage() {
     }
   }
 
+  async function repullProject(id: string) {
+    setMenuFor(null);
+    setTabMsg("Re-pulling memory…");
+    try {
+      const response = await fetch(`/api/projects/${id}/repull`, { method: "POST" });
+      const data = await response.json();
+      if (response.ok) {
+        setTabMsg(`Pulled ${data.pulled} memories`);
+        loadProject(id); // refresh this tab's graph
+      } else {
+        setTabMsg(data.error === "project_offline" ? "Project offline — can't re-pull" : `Re-pull failed: ${data.error}`);
+      }
+    } catch {
+      setTabMsg("Re-pull failed");
+    }
+    setTimeout(() => setTabMsg(""), 3000);
+  }
+
+  async function disconnectProject(id: string) {
+    setMenuFor(null);
+    const name = projects.find((p) => p.id === id)?.name ?? id;
+    if (typeof window !== "undefined" && !window.confirm(`Disconnect "${name}"? This removes its link and mirrored memory from the Brain.`)) return;
+    const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    if (response.ok) {
+      closeTab(id);
+      setTabMsg(`Disconnected ${name}`);
+      setTimeout(() => setTabMsg(""), 3000);
+    } else {
+      setTabMsg("Disconnect failed");
+      setTimeout(() => setTabMsg(""), 3000);
+    }
+  }
+
   const onlineCount = projects.filter((p) => p.status === "online").length;
 
   return (
@@ -248,14 +284,22 @@ export default function GraphPage() {
                 <button
                   type="button"
                   className="mop-graph-tab-close"
-                  aria-label={`Close ${tab.label}`}
+                  aria-label={`Options for ${tab.label}`}
+                  aria-haspopup="menu"
                   onClick={(event) => {
                     event.stopPropagation();
-                    closeTab(tab.id);
+                    setMenuFor(menuFor === tab.id ? null : tab.id);
                   }}
                 >
-                  ×
+                  ⋮
                 </button>
+              )}
+              {menuFor === tab.id && (
+                <div className="mop-graph-tab-menu" role="menu" onClick={(event) => event.stopPropagation()}>
+                  <button type="button" role="menuitem" onClick={() => repullProject(tab.id)}>↻ Re-pull memory</button>
+                  <button type="button" role="menuitem" onClick={() => { setMenuFor(null); closeTab(tab.id); }}>× Close tab</button>
+                  <button type="button" role="menuitem" className="is-danger" onClick={() => disconnectProject(tab.id)}>⨯ Disconnect project</button>
+                </div>
               )}
             </div>
           ))}
@@ -263,8 +307,9 @@ export default function GraphPage() {
             ＋
           </button>
         </div>
-        <span className="mop-graph-tabs-meta">{onlineCount}/{projects.length} online</span>
+        <span className="mop-graph-tabs-meta">{tabMsg || `${onlineCount}/${projects.length} online`}</span>
       </div>
+      {menuFor && <div className="mop-graph-menu-scrim" onClick={() => setMenuFor(null)} />}
 
       {/* ── contextual toolbar ── */}
       <header className="mop-graph-toolbar">

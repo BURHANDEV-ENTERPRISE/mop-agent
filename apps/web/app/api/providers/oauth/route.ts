@@ -6,7 +6,8 @@
  * Tokens are encrypted at rest in the provider slot (see config.saveOAuthSlot).
  */
 import { requireRole } from "@/lib/authz";
-import { listMaskedSlots, listSlots, readOAuthTokens, saveOAuthSlot, writeOAuthTokens } from "@/lib/providers/config";
+import { getProviderMeta } from "@/lib/providers/catalog";
+import { listMaskedSlots, listSlots, readOAuthTokens, saveOAuthSlot, updateSlot, writeOAuthTokens } from "@/lib/providers/config";
 import { exchangeCode, isOAuthProvider, refreshTokens, startOAuth } from "@/lib/providers/oauth";
 
 export async function POST(req: Request): Promise<Response> {
@@ -47,6 +48,10 @@ export async function PATCH(req: Request): Promise<Response> {
   try {
     const fresh = await refreshTokens(slot.provider, tokens.refresh_token);
     writeOAuthTokens(slot.id, fresh);
+    // also realign the model to the current catalog default (e.g. after we change
+    // it because the provider stopped accepting an old model id)
+    const def = getProviderMeta(slot.provider)?.defaultModel;
+    if (def) updateSlot(slot.id, { model: def });
     return Response.json(listMaskedSlots());
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "refresh_failed" }, { status: 400 });

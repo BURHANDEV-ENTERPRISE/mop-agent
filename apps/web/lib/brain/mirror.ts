@@ -61,6 +61,41 @@ export async function ingestSnapshot(snap: SnapshotPushMessage): Promise<void> {
   }
 }
 
+/** Re-pull path: ingest a raw memory list (e.g. from the list_memory tool) for a project. */
+export async function ingestMemoryList(
+  projectId: string,
+  list: Array<Record<string, unknown>>,
+): Promise<number> {
+  const db = getDb();
+  let count = 0;
+  for (const m of list) {
+    const id = typeof m.id === "string" ? m.id : null;
+    const summary = typeof m.summary === "string" ? m.summary : "";
+    if (!id || !summary) continue;
+    db.insert(memoryEntry)
+      .values({
+        id,
+        projectId,
+        kind: String(m.kind ?? "conversation"),
+        summary,
+        body: typeof m.body === "string" ? m.body : null,
+        actor: typeof m.actor === "string" ? m.actor : null,
+        agent: typeof m.agent === "string" ? m.agent : null,
+        agentRole: typeof m.agentRole === "string" ? m.agentRole : null,
+        at: typeof m.at === "number" ? m.at : Date.now(),
+        private: m.private === false ? false : true,
+      })
+      .onConflictDoUpdate({
+        target: memoryEntry.id,
+        set: { agent: typeof m.agent === "string" ? m.agent : null, agentRole: typeof m.agentRole === "string" ? m.agentRole : null },
+      })
+      .run();
+    await embedAndIndex("episodic", id, `${summary}\n${typeof m.body === "string" ? m.body : ""}`);
+    count++;
+  }
+  return count;
+}
+
 export function listProjectMemory(projectId: string, limit = 100): Array<typeof memoryEntry.$inferSelect> {
   return getDb()
     .select()

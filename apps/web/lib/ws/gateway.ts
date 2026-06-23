@@ -125,3 +125,15 @@ export function callFlow(
 export function isOnline(projectId: string): boolean {
   return liveLinks.has(projectId);
 }
+
+/** Force-close a project's live socket (used when disconnecting a project). */
+export function dropLink(projectId: string): void {
+  const ws = liveLinks.get(projectId);
+  if (!ws) return;
+  try {
+    ws.close(4002, "disconnected");
+  } catch {
+    /* already closing */
+  }
+  liveLinks.delete(projectId);
+}

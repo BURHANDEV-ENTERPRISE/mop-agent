@@ -705,13 +705,19 @@ button {
 .mop-graph-tabs { display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #181a19; border-bottom: 1px solid rgba(255, 255, 255, .08); }
 .mop-graph-tabs-back { width: 26px; height: 26px; display: grid; place-items: center; flex: 0 0 auto; color: #e9e5d4; text-decoration: none; border: 1px solid rgba(255, 255, 255, .12); border-radius: 6px; }
 .mop-graph-tablist { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; overflow-x: auto; }
-.mop-graph-tab { display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 9px; flex: 0 0 auto; border: 1px solid transparent; border-bottom: 0; border-radius: 7px 7px 0 0; color: rgba(233, 229, 212, .6); font-size: 11px; cursor: pointer; white-space: nowrap; }
+.mop-graph-tab { position: relative; display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 9px; flex: 0 0 auto; border: 1px solid transparent; border-bottom: 0; border-radius: 7px 7px 0 0; color: rgba(233, 229, 212, .6); font-size: 11px; cursor: pointer; white-space: nowrap; }
 .mop-graph-tab:hover { color: #f1ecda; background: rgba(255, 255, 255, .04); }
 .mop-graph-tab.is-active { background: #171918; border-color: rgba(255, 255, 255, .12); color: #f1ecda; }
 .mop-graph-tab-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
 .mop-graph-tab-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
-.mop-graph-tab-close { width: 16px; height: 16px; display: grid; place-items: center; border: 0; background: transparent; color: inherit; opacity: .5; cursor: pointer; font-size: 13px; line-height: 1; }
+.mop-graph-tab-close { width: 16px; height: 16px; display: grid; place-items: center; border: 0; background: transparent; color: inherit; opacity: .5; cursor: pointer; font-size: 15px; line-height: 1; }
 .mop-graph-tab-close:hover { opacity: 1; }
+.mop-graph-menu-scrim { position: fixed; inset: 0; z-index: 40; }
+.mop-graph-tab-menu { position: absolute; top: 30px; right: 0; z-index: 50; min-width: 184px; display: grid; padding: 5px; background: #1d1f1e; border: 1px solid rgba(255, 255, 255, .14); border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.mop-graph-tab-menu button { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 0; background: transparent; color: #e9e5d4; font-size: 12px; text-align: left; cursor: pointer; border-radius: 5px; }
+.mop-graph-tab-menu button:hover { background: rgba(255, 255, 255, .07); }
+.mop-graph-tab-menu button.is-danger { color: #e8918b; }
+.mop-graph-tab-menu button.is-danger:hover { background: rgba(215, 76, 69, .16); }
 .mop-graph-tab-add { width: 26px; height: 26px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgba(255, 255, 255, .12); background: transparent; color: #e9e5d4; border-radius: 6px; cursor: pointer; }
 .mop-graph-tab-add:hover { background: rgba(255, 255, 255, .06); }
 .mop-graph-tabs-meta { flex: 0 0 auto; color: rgba(233, 229, 212, .4); font-size: 10px; }

@@ -32,7 +32,7 @@ export const PROVIDER_CATALOG: ProviderMeta[] = [
   { id: "xai", name: "xAI Grok", auth: "apikey", openaiCompatible: true, baseUrl: "https://api.x.ai/v1", defaultModel: "grok-4", keyPlaceholder: "xai-…" },
   { id: "custom", name: "Custom (OpenAI-compatible)", auth: "custom", openaiCompatible: true, defaultModel: "", note: "Any OpenAI-compatible endpoint — Ollama, LM Studio, vLLM, a proxy. Set base URL + key + model." },
   { id: "claude-sub", name: "claude.ai (subscription)", auth: "oauth", openaiCompatible: false, defaultModel: "claude-sonnet-4-6", note: "Log in with your Claude Pro/Max subscription like Claude Code. Experimental — connect flow coming next." },
-  { id: "chatgpt-sub", name: "ChatGPT (subscription)", auth: "oauth", openaiCompatible: false, defaultModel: "gpt-5", note: "Log in with your ChatGPT subscription like Codex. Experimental — connect flow coming next." },
+  { id: "chatgpt-sub", name: "ChatGPT (subscription)", auth: "oauth", openaiCompatible: false, defaultModel: "gpt-5.5", note: "Log in with your ChatGPT subscription like Codex. Experimental — uses the Codex backend; only Codex-supported models work (e.g. gpt-5.5)." },
 ];
 
 export function getProviderMeta(id: string): ProviderMeta | undefined {
