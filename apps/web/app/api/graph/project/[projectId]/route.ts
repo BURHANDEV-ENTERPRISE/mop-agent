@@ -24,9 +24,6 @@ export type ProjectGraphNode = {
 };
 export type ProjectGraphEdge = { from: string; to: string };
 
-/** Cap so a huge project doesn't blow up the force layout. */
-const MEMORY_LIMIT = 250;
-
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ projectId: string }> },
@@ -38,13 +35,25 @@ export async function GET(
   const project = listProjects().find((p) => p.id === projectId);
   if (!project) return Response.json({ error: "not_found" }, { status: 404 });
 
-  const memories = getDb()
+  // No cap — show every memory. Memory nodes are leaves fanned deterministically
+  // around their agent, so count doesn't affect the (backbone-only) force sim.
+  const rawMemories = getDb()
     .select()
     .from(memoryEntry)
     .where(eq(memoryEntry.projectId, projectId))
     .orderBy(desc(memoryEntry.at))
-    .limit(MEMORY_LIMIT)
     .all();
+
+  // Collapse exact-duplicate memories (same agent + kind + summary). Repeated
+  // session greetings like "Greeted the user moon" were logged over and over and
+  // spammed the graph; keep just the most recent of each (rows are newest-first).
+  const seen = new Set<string>();
+  const memories = rawMemories.filter((m) => {
+    const key = `${(m.agent || m.actor || "agent").trim()}|${m.kind}|${m.summary}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   const nodes: ProjectGraphNode[] = [
     { id: "project", label: project.name, type: "project" },

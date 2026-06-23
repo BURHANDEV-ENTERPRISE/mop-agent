@@ -34,7 +34,7 @@ async function readState(projectRoot: string): Promise<unknown> {
 }
 
 /** Read recent episodic entries from monthly JSONL files (.MOP/memory/YYYY-MM.jsonl). */
-async function readMemory(projectRoot: string, limit = 200): Promise<MemoryEntry[]> {
+async function readMemory(projectRoot: string, limit = 100000): Promise<MemoryEntry[]> {
   const dir = join(projectRoot, ".MOP", "memory");
   if (!existsSync(dir)) return [];
   const files = (await readdir(dir))
