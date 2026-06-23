@@ -29,6 +29,25 @@ export type ToolContext = {
 
 export class CapabilityError extends Error {}
 
+/** Read tools that should still respect a capability toggle (defense in depth). */
+const READ_TOOL_CAPABILITY: Partial<Record<string, keyof Capabilities>> = {
+  read_artifact: "readArtifacts",
+  list_artifacts: "readArtifacts",
+  list_memory: "readMemory",
+  search_project_context: "readMemory",
+};
+
+/** Resolve `relPath` under `baseDir`, refusing any path that escapes it (traversal guard). */
+function confineWithin(baseDir: string, relPath: string): string {
+  const base = resolve(baseDir);
+  const target = resolve(base, relPath);
+  const sep = process.platform === "win32" ? "\\" : "/";
+  if (target !== base && !target.startsWith(base + sep)) {
+    throw new CapabilityError("path_escapes_root");
+  }
+  return target;
+}
+
 export async function handleToolRequest(
   tool: McpToolName,
   args: Record<string, unknown>,
@@ -42,6 +61,12 @@ export async function handleToolRequest(
     }
     const ok = ctx.hasValidSession ? await ctx.hasValidSession(args.actor as string | undefined) : true;
     if (!ok) throw new CapabilityError("no_valid_session");
+  } else {
+    // Read tools previously bypassed ALL gating; still honor read capabilities.
+    const rcap = READ_TOOL_CAPABILITY[tool];
+    if (rcap && !ctx.capabilities[rcap]) {
+      throw new CapabilityError(`capability_denied:${rcap}`);
+    }
   }
 
   // 2) Dispatch
@@ -51,7 +76,7 @@ export async function handleToolRequest(
     case "list_memory":
       return listMemory(ctx.projectRoot, Number(args.limit ?? 50));
     case "read_artifact":
-      return readText(join(ctx.projectRoot, ".MOP", "artifacts", String(args.path)));
+      return readText(confineWithin(join(ctx.projectRoot, ".MOP", "artifacts"), String(args.path)));
     case "list_artifacts":
       return listArtifacts(ctx.projectRoot);
     case "workflow_status":
@@ -133,7 +158,7 @@ async function appendMemory(projectRoot: string, args: Record<string, unknown>):
 }
 
 async function writeArtifact(projectRoot: string, relPath: string, content: string): Promise<{ ok: true; path: string }> {
-  const p = join(projectRoot, ".MOP", "artifacts", relPath);
+  const p = confineWithin(join(projectRoot, ".MOP", "artifacts"), relPath);
   await mkdir(dirname(p), { recursive: true });
   await writeFile(p, content, "utf8");
   return { ok: true, path: relPath };
@@ -187,11 +212,7 @@ async function searchContext(projectRoot: string, query: string): Promise<Array<
 
 /** edit_code: write a project source file, refusing paths that escape the project root. */
 async function editCode(projectRoot: string, relPath: string, content: string): Promise<{ ok: true; path: string }> {
-  const root = resolve(projectRoot);
-  const target = resolve(root, relPath);
-  if (target !== root && !target.startsWith(root + (process.platform === "win32" ? "\\" : "/"))) {
-    throw new CapabilityError("path_escapes_project_root");
-  }
+  const target = confineWithin(projectRoot, relPath);
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, content, "utf8");
   return { ok: true, path: relPath };

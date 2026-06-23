@@ -4,7 +4,7 @@
  * to FLOW exactly once at pairing.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import type { Capabilities, ProjectManifest } from "@mop/link-protocol";
 import { getDb } from "../db/client";
 import { project, pairingCode } from "../db/schema";
@@ -30,17 +30,30 @@ export function createPairingCode(ttlMs = 10 * 60_000): { code: string; expiresA
 }
 
 export function consumePairingCode(code: string): boolean {
-  const db = getDb();
-  const [row] = db.select().from(pairingCode).where(eq(pairingCode.code, code)).all();
-  if (!row || row.usedAt || row.expiresAt < Date.now()) return false;
-  db.update(pairingCode).set({ usedAt: Date.now() }).where(eq(pairingCode.code, code)).run();
-  return true;
+  // Atomic claim: a single conditional UPDATE marks the code used only if it is
+  // still unused AND unexpired. Avoids the check-then-act race of SELECT+UPDATE.
+  const now = Date.now();
+  const res = getDb()
+    .update(pairingCode)
+    .set({ usedAt: now })
+    .where(and(eq(pairingCode.code, code), isNull(pairingCode.usedAt), gt(pairingCode.expiresAt, now)))
+    .run();
+  return res.changes === 1;
 }
 
-export function registerProject(manifest: ProjectManifest): { linkToken: string } {
+/**
+ * Register a NEW project for a freshly consumed pairing code.
+ *
+ * Insert-only: a pairing code may only CREATE a project, never overwrite an
+ * existing one. Because `projectId` is client-supplied (and shown in the UI /
+ * logs), allowing onConflictDoUpdate would let any valid code clobber another
+ * project's link token = hijack. Returns null on conflict; the caller must
+ * surface "project_exists" (re-link requires removing the project first).
+ */
+export function registerProject(manifest: ProjectManifest): { linkToken: string } | null {
   const linkToken = randomBytes(32).toString("hex");
   const linkTokenHash = sha256(linkToken);
-  getDb()
+  const res = getDb()
     .insert(project)
     .values({
       id: manifest.projectId,
@@ -52,11 +65,9 @@ export function registerProject(manifest: ProjectManifest): { linkToken: string 
       lastSeenAt: null,
       createdAt: Date.now(),
     })
-    .onConflictDoUpdate({
-      target: project.id,
-      set: { name: manifest.name, mopFlowVersion: manifest.mopFlowVersion, linkTokenHash, capabilities: manifest.capabilities },
-    })
+    .onConflictDoNothing({ target: project.id })
     .run();
+  if (res.changes === 0) return null;
   return { linkToken };
 }
 

@@ -8,7 +8,16 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 function key(): Buffer {
   const secret = process.env.MOP_AGENT_SECRET;
   if (secret && /^[0-9a-fA-F]{64}$/.test(secret)) return Buffer.from(secret, "hex");
-  // Dev fallback: derive a 32-byte key from whatever secret is present (insecure).
+  // NEVER fall back to a known/derived key in production — that is effectively no
+  // encryption for the provider API keys stored at rest. Fail loudly instead.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "MOP_AGENT_SECRET is missing or invalid (need 64 hex chars). Refusing to encrypt " +
+        "secrets with an insecure key in production. Generate one with: " +
+        `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`,
+    );
+  }
+  // Dev only: derive a 32-byte key from whatever secret is present (insecure).
   return createHash("sha256").update(secret ?? "mop-agent-dev-insecure-key").digest();
 }
 

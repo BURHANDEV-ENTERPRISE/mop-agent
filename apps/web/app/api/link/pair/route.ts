@@ -25,7 +25,12 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "invalid_or_expired_code" }, { status: 401 });
   }
 
-  const { linkToken } = registerProject(body.manifest);
+  const registered = registerProject(body.manifest);
+  if (!registered) {
+    // projectId already taken — refuse to overwrite an existing link (hijack guard).
+    return Response.json({ error: "project_exists" }, { status: 409 });
+  }
+  const { linkToken } = registered;
 
   const wsUrl = new URL(req.url);
   wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";

@@ -45,6 +45,16 @@ export function attachGateway(server: Server): WebSocketServer {
       return;
     }
 
+    // Drop any stale socket for this project so we don't leak the old connection
+    // (reconnect, or a second FLOW presenting the same token).
+    const stale = liveLinks.get(proj.id);
+    if (stale && stale !== ws) {
+      try {
+        stale.close(4000, "replaced");
+      } catch {
+        /* already closing */
+      }
+    }
     liveLinks.set(proj.id, ws);
     setProjectStatus(proj.id, "online");
     console.log(`[gateway] ${proj.id} online`);
