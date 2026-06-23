@@ -51,20 +51,35 @@ export async function GET(
   ];
   const edges: ProjectGraphEdge[] = [];
 
-  // Agents = distinct actors; count memories per agent for sizing.
+  // Agents = the named AI agent that authored each memory (KIID, Numero, …),
+  // falling back to actor, then a generic bucket. Grouping by the AI agent — not
+  // the human owner ("moon") — is what makes the per-agent memory clusters show.
+  const agentOf = (m: (typeof memories)[number]) =>
+    (m.agent && m.agent.trim()) || (m.actor && m.actor.trim()) || "agent";
+  const roleOf = new Map<string, string>();
+
   const agentCount = new Map<string, number>();
   for (const m of memories) {
-    const actor = (m.actor && m.actor.trim()) || "unknown";
-    agentCount.set(actor, (agentCount.get(actor) ?? 0) + 1);
+    const agent = agentOf(m);
+    agentCount.set(agent, (agentCount.get(agent) ?? 0) + 1);
+    if (m.agentRole && m.agentRole.trim() && !roleOf.has(agent)) roleOf.set(agent, m.agentRole.trim());
   }
-  for (const [actor, count] of agentCount) {
-    nodes.push({ id: `agent:${actor}`, label: actor, type: "agent", size: count });
-    edges.push({ from: "project", to: `agent:${actor}` });
+  for (const [agent, count] of agentCount) {
+    const role = roleOf.get(agent);
+    nodes.push({
+      id: `agent:${agent}`,
+      label: agent,
+      type: "agent",
+      size: count,
+      kind: role,
+      detail: role ? `${role} agent · ${count} memories` : `${count} memories`,
+    });
+    edges.push({ from: "project", to: `agent:${agent}` });
   }
 
-  // Memory nodes hang off their agent.
+  // Memory nodes hang off their authoring agent.
   for (const m of memories) {
-    const actor = (m.actor && m.actor.trim()) || "unknown";
+    const agent = agentOf(m);
     nodes.push({
       id: `mem:${m.id}`,
       label: (m.summary || m.kind || "memory").slice(0, 64),
@@ -73,7 +88,7 @@ export async function GET(
       detail: (m.body || m.summary || "").slice(0, 320),
       at: m.at,
     });
-    edges.push({ from: `agent:${actor}`, to: `mem:${m.id}` });
+    edges.push({ from: `agent:${agent}`, to: `mem:${m.id}` });
   }
 
   // Skills sourced from this project.

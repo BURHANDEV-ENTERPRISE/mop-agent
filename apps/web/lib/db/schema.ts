@@ -42,6 +42,8 @@ export const memoryEntry = sqliteTable("memory_entry", {
   summary: text("summary").notNull(),
   body: text("body"),
   actor: text("actor"),
+  agent: text("agent"), // named AI agent that authored the memory (KIID, Numero, …)
+  agentRole: text("agent_role"),
   at: integer("at").notNull(),
   private: integer("private", { mode: "boolean" }).notNull().default(true),
 });

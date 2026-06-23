@@ -95,7 +95,14 @@ export type MemoryEntry = {
   kind: MemoryKind | string;
   summary: string;
   body?: string;
+  /** the human/owner the work was done for (e.g. "moon") */
   actor?: string;
+  /** the named AI agent that authored this memory (e.g. "KIID", "Numero") */
+  agent?: string;
+  /** the agent's role (e.g. "core", "frontend", "ux") */
+  agentRole?: string;
+  /** stable agent id (e.g. "agent-kiid") */
+  agentId?: string;
   /** epoch millis */
   at: number;
   /** episodic memory is private by default (judgment layer) */

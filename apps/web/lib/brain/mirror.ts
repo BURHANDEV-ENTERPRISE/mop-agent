@@ -46,10 +46,16 @@ export async function ingestSnapshot(snap: SnapshotPushMessage): Promise<void> {
         summary: m.summary,
         body: m.body ?? null,
         actor: m.actor ?? null,
+        agent: m.agent ?? null,
+        agentRole: m.agentRole ?? null,
         at: m.at,
         private: m.private ?? true,
       })
-      .onConflictDoNothing()
+      // backfill agent/role on rows ingested before these columns existed
+      .onConflictDoUpdate({
+        target: memoryEntry.id,
+        set: { agent: m.agent ?? null, agentRole: m.agentRole ?? null },
+      })
       .run();
     await embedAndIndex("episodic", m.id, `${m.summary}\n${m.body ?? ""}`);
   }

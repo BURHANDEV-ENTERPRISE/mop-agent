@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS memory_entry (
   summary TEXT NOT NULL,
   body TEXT,
   actor TEXT,
+  agent TEXT,
+  agent_role TEXT,
   at INTEGER NOT NULL,
   private INTEGER NOT NULL DEFAULT 1
 );
@@ -125,6 +127,15 @@ export async function runAllMigrations(): Promise<void> {
 
   // App tables
   sqlite.exec(APP_TABLES_SQL);
+
+  // Additive column migrations for DBs created before these columns existed.
+  // SQLite ADD COLUMN is not idempotent, so guard on pragma table_info.
+  const addColumn = (table: string, column: string, ddl: string) => {
+    const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (!cols.some((c) => c.name === column)) sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  };
+  addColumn("memory_entry", "agent", "agent TEXT");
+  addColumn("memory_entry", "agent_role", "agent_role TEXT");
 
   // sqlite-vec virtual table (raw — Drizzle can't model vec0)
   sqlite.exec(
