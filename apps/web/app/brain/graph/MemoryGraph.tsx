@@ -57,36 +57,43 @@ function radiusFor(node: GNode): number {
 
 type Vec = { x: number; y: number; vx: number; vy: number };
 
-/** Synchronous force relaxation → final positions keyed by node id. */
-function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, { x: number; y: number }> {
+type XY = { x: number; y: number };
+
+/** Phyllotaxis (sunflower) disc radius for the j-th leaf around a hub. */
+function leafRadius(j: number): number {
+  return 38 + Math.sqrt(j) * 17;
+}
+
+/**
+ * Force-relax just the backbone (project/agents/skills — the non-leaf nodes).
+ * Small graph → converges cleanly with classic params, no clamping gymnastics.
+ * `pull` scales each hub's distance from centre so its leaf-disc has room.
+ */
+function relaxBackbone(
+  nodes: GNode[],
+  edges: GEdge[],
+  centerId: string,
+  leafCount: Map<string, number>,
+): Map<string, XY> {
   const pos = new Map<string, Vec>();
-  const seed = new Map<string, { x: number; y: number }>(); // spread fallback if a node ever goes non-finite
   nodes.forEach((node, i) => {
     if (node.id === centerId) {
       pos.set(node.id, { x: 0, y: 0, vx: 0, vy: 0 });
-      seed.set(node.id, { x: 0, y: 0 });
       return;
     }
-    // golden-angle seed spiral so the first frame is already spread out
     const a = i * 2.399963;
-    const r = 130 + i * 7;
-    const sx = Math.cos(a) * r;
-    const sy = Math.sin(a) * r;
-    pos.set(node.id, { x: sx, y: sy, vx: 0, vy: 0 });
-    seed.set(node.id, { x: sx, y: sy });
+    const r = 150 + i * 30;
+    pos.set(node.id, { x: Math.cos(a) * r, y: Math.sin(a) * r, vx: 0, vy: 0 });
   });
 
   const links = edges.filter((e) => pos.has(e.from) && pos.has(e.to));
-  const REPULSION = 9000;
-  const SPRING = 0.025;
-  const LINK_LEN = 86;
-  const GRAVITY = 0.018;
+  const REPULSION = 26000;
+  const SPRING = 0.03;
+  const GRAVITY = 0.015;
   const DAMP = 0.85;
-  const MAX_V = 120; // cap per-step speed so a large graph can't blow up to Infinity → NaN
-  const BOUND = 8000; // cap position magnitude
   const n = nodes.length;
 
-  for (let iter = 0; iter < 260; iter++) {
+  for (let iter = 0; iter < 300; iter++) {
     for (let i = 0; i < n; i++) {
       const a = pos.get(nodes[i]!.id)!;
       for (let j = i + 1; j < n; j++) {
@@ -101,12 +108,10 @@ function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, {
         }
         const d = Math.sqrt(d2);
         const f = REPULSION / d2;
-        const fx = (f * dx) / d;
-        const fy = (f * dy) / d;
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
+        a.vx += (f * dx) / d;
+        a.vy += (f * dy) / d;
+        b.vx -= (f * dx) / d;
+        b.vy -= (f * dy) / d;
       }
     }
     for (const e of links) {
@@ -115,50 +120,101 @@ function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, {
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
-      const f = (d - LINK_LEN) * SPRING;
-      const fx = (f * dx) / d;
-      const fy = (f * dy) / d;
-      a.vx += fx;
-      a.vy += fy;
-      b.vx -= fx;
-      b.vy -= fy;
+      // longer rest length for hubs carrying many leaves, so discs don't collide
+      const child = e.to === centerId ? e.from : e.to;
+      const linkLen = 120 + leafRadius(leafCount.get(child) ?? 0);
+      const f = (d - linkLen) * SPRING;
+      a.vx += (f * dx) / d;
+      a.vy += (f * dy) / d;
+      b.vx -= (f * dx) / d;
+      b.vy -= (f * dy) / d;
     }
     for (const node of nodes) {
       const p = pos.get(node.id)!;
       if (node.id === centerId) {
-        p.x = 0;
-        p.y = 0;
-        p.vx = 0;
-        p.vy = 0;
+        p.x = 0; p.y = 0; p.vx = 0; p.vy = 0;
         continue;
       }
       p.vx -= p.x * GRAVITY;
       p.vy -= p.y * GRAVITY;
       p.vx *= DAMP;
       p.vy *= DAMP;
-      // clamp velocity so a dense graph (hundreds of nodes) can't diverge to Infinity
       if (!Number.isFinite(p.vx)) p.vx = 0;
       if (!Number.isFinite(p.vy)) p.vy = 0;
-      p.vx = Math.max(-MAX_V, Math.min(MAX_V, p.vx));
-      p.vy = Math.max(-MAX_V, Math.min(MAX_V, p.vy));
       p.x += p.vx;
       p.y += p.vy;
-      // keep positions finite + bounded; reseed if something still slipped through
-      if (!Number.isFinite(p.x)) p.x = seed.get(node.id)!.x;
-      if (!Number.isFinite(p.y)) p.y = seed.get(node.id)!.y;
-      p.x = Math.max(-BOUND, Math.min(BOUND, p.x));
-      p.y = Math.max(-BOUND, Math.min(BOUND, p.y));
+      if (!Number.isFinite(p.x)) p.x = 0;
+      if (!Number.isFinite(p.y)) p.y = 0;
     }
   }
 
-  const out = new Map<string, { x: number; y: number }>();
-  for (const [k, v] of pos) {
-    // final guard: any non-finite value would emit invalid SVG path / viewBox
-    // numbers. Fall back to the spread seed (not 0,0) so nodes never all collapse
-    // onto each other — coincident nodes make React Flow produce NaN edge paths.
-    const fallback = seed.get(k) ?? { x: 0, y: 0 };
-    out.set(k, { x: Number.isFinite(v.x) ? v.x : fallback.x, y: Number.isFinite(v.y) ? v.y : fallback.y });
+  // make sure each hub sits far enough out for its leaf-disc to clear the centre
+  for (const node of nodes) {
+    if (node.id === centerId) continue;
+    const leaves = leafCount.get(node.id) ?? 0;
+    if (leaves === 0) continue;
+    const p = pos.get(node.id)!;
+    const dist = Math.hypot(p.x, p.y) || 1;
+    const want = leafRadius(leaves) + 120;
+    if (dist < want) {
+      p.x = (p.x / dist) * want;
+      p.y = (p.y / dist) * want;
+    }
   }
+
+  const out = new Map<string, XY>();
+  for (const [k, v] of pos) out.set(k, { x: Number.isFinite(v.x) ? v.x : 0, y: Number.isFinite(v.y) ? v.y : 0 });
+  return out;
+}
+
+/**
+ * Obsidian-style layout. Leaf nodes (degree-1, e.g. memories) are fanned out in a
+ * sunflower disc around their single parent hub rather than thrown into the global
+ * force sim — so hundreds of memories read as a tidy halo per agent instead of a
+ * blob that collapses onto one point (which also produced NaN edge geometry).
+ */
+function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, XY> {
+  const ids = new Set(nodes.map((n) => n.id));
+  const degree = new Map<string, number>(nodes.map((n) => [n.id, 0]));
+  for (const e of edges) {
+    if (!ids.has(e.from) || !ids.has(e.to)) continue;
+    degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
+    degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+  }
+
+  // map each leaf (degree 1, not the centre) to its single neighbour (its hub)
+  const parent = new Map<string, string>();
+  for (const e of edges) {
+    if (!ids.has(e.from) || !ids.has(e.to)) continue;
+    if (e.from !== centerId && degree.get(e.from) === 1) parent.set(e.from, e.to);
+    if (e.to !== centerId && degree.get(e.to) === 1) parent.set(e.to, e.from);
+  }
+
+  const leafCount = new Map<string, number>();
+  for (const hub of parent.values()) leafCount.set(hub, (leafCount.get(hub) ?? 0) + 1);
+
+  const backbone = nodes.filter((n) => !parent.has(n.id));
+  const backboneIds = new Set(backbone.map((n) => n.id));
+  const backboneEdges = edges.filter((e) => backboneIds.has(e.from) && backboneIds.has(e.to));
+
+  const pos = relaxBackbone(backbone, backboneEdges, centerId, leafCount);
+
+  // fan leaves around their hub in a deterministic golden-angle disc
+  const placed = new Map<string, number>();
+  for (const node of nodes) {
+    const hub = parent.get(node.id);
+    if (!hub) continue;
+    const hp = pos.get(hub) ?? { x: 0, y: 0 };
+    const j = placed.get(hub) ?? 0;
+    placed.set(hub, j + 1);
+    const a = j * 2.399963;
+    const r = leafRadius(j);
+    pos.set(node.id, { x: hp.x + Math.cos(a) * r, y: hp.y + Math.sin(a) * r });
+  }
+
+  // final finite guard
+  const out = new Map<string, XY>();
+  for (const [k, v] of pos) out.set(k, { x: Number.isFinite(v.x) ? v.x : 0, y: Number.isFinite(v.y) ? v.y : 0 });
   return out;
 }
 
