@@ -135,7 +135,11 @@ function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, {
   }
 
   const out = new Map<string, { x: number; y: number }>();
-  for (const [k, v] of pos) out.set(k, { x: v.x, y: v.y });
+  for (const [k, v] of pos) {
+    // guard against any non-finite drift from the force sim — NaN/Infinity here
+    // turns into invalid SVG path / viewBox numbers downstream.
+    out.set(k, { x: Number.isFinite(v.x) ? v.x : 0, y: Number.isFinite(v.y) ? v.y : 0 });
+  }
   return out;
 }
 
@@ -162,12 +166,21 @@ export default function MemoryGraph({
 
   const initialNodes: Node<NodeData>[] = useMemo(() => {
     const positions = settle(gNodes, gEdges, centerId);
-    return gNodes.map((node) => ({
-      id: node.id,
-      type: "memory",
-      position: positions.get(node.id) ?? { x: 0, y: 0 },
-      data: { label: node.label, gtype: node.type, radius: radiusFor(node) },
-    }));
+    return gNodes.map((node) => {
+      const radius = radiusFor(node);
+      const pos = positions.get(node.id) ?? { x: 0, y: 0 };
+      return {
+        id: node.id,
+        type: "memory",
+        position: { x: Number.isFinite(pos.x) ? pos.x : 0, y: Number.isFinite(pos.y) ? pos.y : 0 },
+        // give React Flow the dimensions up front so edge endpoints + the minimap
+        // viewBox compute as finite numbers on the very first frame (before the DOM
+        // is measured) — otherwise they emit NaN into SVG path/viewBox attributes.
+        width: radius,
+        height: radius,
+        data: { label: node.label, gtype: node.type, radius },
+      };
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, centerId]);
 

@@ -140,27 +140,28 @@ export default function SettingsPage() {
   );
 }
 
+function authLabel(auth: string): string {
+  return auth === "oauth" ? "SUBSCRIPTION" : auth === "custom" ? "CUSTOM URL" : "API KEY";
+}
+
 function ProvidersSettings() {
   const [catalog, setCatalog] = useState<ProviderMeta[]>([]);
   const [main, setMain] = useState<Slot | null>(null);
   const [fallbacks, setFallbacks] = useState<Slot[]>([]);
 
-  const [mainProvider, setMainProvider] = useState("anthropic");
-  const [mainKey, setMainKey] = useState("");
-  const [mainModel, setMainModel] = useState("");
-  const [mainBaseUrl, setMainBaseUrl] = useState("");
-  const [mainMsg, setMainMsg] = useState("");
-
-  const [fbProvider, setFbProvider] = useState("openai");
-  const [fbKey, setFbKey] = useState("");
-  const [fbModel, setFbModel] = useState("");
-  const [fbBaseUrl, setFbBaseUrl] = useState("");
-  const [fbMsg, setFbMsg] = useState("");
-
+  const [picked, setPicked] = useState("anthropic");
+  const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [msg, setMsg] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const mainMeta = catalog.find((p) => p.id === mainProvider);
-  const fbMeta = catalog.find((p) => p.id === fbProvider);
+  // subscription OAuth flow
+  const [oauth, setOauth] = useState<{ state: string; flow: string; role: "main" | "fallback" } | null>(null);
+  const [oauthCode, setOauthCode] = useState("");
+  const [oauthMsg, setOauthMsg] = useState("");
+
+  const meta = catalog.find((p) => p.id === picked);
 
   function load() {
     fetch("/api/providers")
@@ -174,43 +175,67 @@ function ProvidersSettings() {
   }
   useEffect(load, []);
 
-  async function saveMain(e: React.FormEvent) {
-    e.preventDefault();
-    setMainMsg("Saving…");
+  function pick(id: string) {
+    setPicked(id);
+    setApiKey(""); setModel(""); setBaseUrl(""); setMsg("");
+    setOauth(null); setOauthCode(""); setOauthMsg("");
+  }
+
+  async function save(role: "main" | "fallback") {
+    setMsg(role === "main" ? "Saving main…" : "Adding fallback…");
     const response = await fetch("/api/providers", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ role: "main", provider: mainProvider, apiKey: mainKey, model: mainModel || undefined, baseUrl: mainBaseUrl || undefined }),
+      body: JSON.stringify({ role, provider: picked, apiKey, model: model || undefined, baseUrl: baseUrl || undefined }),
     });
     const data = await response.json();
     if (response.ok) {
       setMain(data.main ?? null);
       setFallbacks(data.fallbacks ?? []);
-      setMainKey("");
-      setMainMsg("Main provider saved · key encrypted.");
+      setApiKey(""); setModel(""); setBaseUrl("");
+      setMsg(role === "main" ? "Saved as main · key encrypted." : "Added to fallback chain.");
     } else {
-      setMainMsg(`Unable to save: ${data.error}`);
+      setMsg(`Unable to save: ${data.error}`);
     }
   }
 
-  async function addFallback(e: React.FormEvent) {
-    e.preventDefault();
-    setFbMsg("Adding…");
-    const response = await fetch("/api/providers", {
+  async function beginOAuth(role: "main" | "fallback") {
+    setOauthMsg("Opening login…");
+    const response = await fetch("/api/providers/oauth", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ role: "fallback", provider: fbProvider, apiKey: fbKey, model: fbModel || undefined, baseUrl: fbBaseUrl || undefined }),
+      body: JSON.stringify({ provider: picked, role }),
+    });
+    const data = await response.json();
+    if (!response.ok) { setOauthMsg(`Unable to start: ${data.error}`); return; }
+    setOauth({ state: data.state, flow: data.flow, role });
+    setOauthMsg("");
+    if (typeof window !== "undefined") window.open(data.authUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function completeOAuth() {
+    if (!oauth) return;
+    setOauthMsg("Linking subscription…");
+    const response = await fetch("/api/providers/oauth", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ state: oauth.state, code: oauthCode.trim() }),
     });
     const data = await response.json();
     if (response.ok) {
+      setMain(data.main ?? null);
       setFallbacks(data.fallbacks ?? []);
-      setFbKey("");
-      setFbModel("");
-      setFbBaseUrl("");
-      setFbMsg("");
+      setOauth(null); setOauthCode("");
+      setOauthMsg("Subscription linked ✓");
     } else {
-      setFbMsg(`Unable to add: ${data.error}`);
+      setOauthMsg(`Link failed: ${data.error}`);
     }
+  }
+
+  async function reconnect(id: string) {
+    const response = await fetch("/api/providers/oauth", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+    const data = await response.json();
+    if (response.ok) { setMain(data.main ?? null); setFallbacks(data.fallbacks ?? []); }
   }
 
   async function patch(body: unknown) {
@@ -246,52 +271,32 @@ function ProvidersSettings() {
         </span>
       </div>
 
-      {/* ── Card 1: Main provider (exactly one) ── */}
+      {/* ── Active chain: main + ordered fallbacks ── */}
       <div className="mop-provider-card">
         <div className="mop-provider-card-head">
-          <div><p className="mop-page-kicker">PRIMARY</p><strong>Main provider</strong></div>
-          {main && <span className="mop-provider-pill">{main.name}{main.model ? ` · ${main.model}` : ""}{main.keyHint ? ` · ${main.keyHint}` : ""}</span>}
+          <div><p className="mop-page-kicker">ACTIVE CHAIN</p><strong>Provider order</strong></div>
+          <span style={statusBadge}>{(main ? 1 : 0) + fallbacks.length} IN CHAIN</span>
         </div>
-        <p style={cardHint}>One provider answers first. Pick the model you trust most.</p>
-        <form onSubmit={saveMain} style={formGrid}>
-          <label style={labelStyle}>Provider
-            <select value={mainProvider} onChange={(e) => { setMainProvider(e.target.value); setMainModel(""); }} style={inputStyle}>
-              {catalog.map((p) => <option key={p.id} value={p.id}>{p.name}{p.auth === "oauth" ? " (subscription)" : ""}</option>)}
-            </select>
-          </label>
-          {mainMeta?.auth === "oauth" ? (
-            <div style={oauthNote}>{mainMeta.note}<button type="button" disabled style={{ ...primaryButton, marginTop: 9, opacity: .5, cursor: "not-allowed" }}>CONNECT (COMING NEXT)</button></div>
-          ) : (
-            <>
-              <label style={labelStyle}>API key
-                <input placeholder={main?.role === "main" ? `Saved ${main.keyHint ?? ""} · leave blank to keep` : (mainMeta?.keyPlaceholder ?? "Paste API key")} type="password" value={mainKey} onChange={(e) => setMainKey(e.target.value)} style={inputStyle} />
-              </label>
-              {mainMeta?.auth === "custom" && (
-                <label style={labelStyle}>Base URL
-                  <input placeholder="https://your-endpoint/v1" value={mainBaseUrl} onChange={(e) => setMainBaseUrl(e.target.value)} style={inputStyle} />
-                </label>
-              )}
-              <label style={labelStyle}>Model
-                <input placeholder={mainMeta?.defaultModel || "model id"} value={mainModel} onChange={(e) => setMainModel(e.target.value)} style={inputStyle} />
-              </label>
-              <button type="submit" style={primaryButton}>SAVE MAIN PROVIDER</button>
-            </>
-          )}
-        </form>
-        {mainMsg && <p style={messageStyle}>{mainMsg}</p>}
-      </div>
+        <p style={cardHint}>The main provider answers first; fallbacks are tried in order when it fails. Drag fallbacks to reorder.</p>
 
-      {/* ── Card 2: Fallback providers (many, drag to reorder) ── */}
-      <div className="mop-provider-card">
-        <div className="mop-provider-card-head">
-          <div><p className="mop-page-kicker">FALLBACK CHAIN</p><strong>Fallback providers</strong></div>
-          <span style={statusBadge}>{fallbacks.length} CONFIGURED</span>
-        </div>
-        <p style={cardHint}>Tried in order when the one before fails. Drag to reorder — top is the first fallback.</p>
-
-        {fallbacks.length === 0 ? (
-          <div style={emptyFallback}>No fallbacks yet. Add one below so the assistant keeps working if the main provider is down.</div>
+        {main ? (
+          <div className="mop-fallback-row" style={{ cursor: "default", marginBottom: 8 }}>
+            <span className="mop-fallback-grip" aria-hidden>★</span>
+            <span className="mop-fallback-order" style={{ background: "#742220" }}>1</span>
+            <div className="mop-fallback-info">
+              <strong>{main.name} <span className="mop-provider-auth">{authLabel(main.authType)}</span></strong>
+              <small>{main.model ?? "default model"}{main.keyHint ? ` · ${main.keyHint}` : main.authType === "oauth" ? " · not linked" : ""}{main.connected ? "" : " · offline"}</small>
+            </div>
+            <div className="mop-fallback-actions">
+              {main.authType === "oauth" && <button type="button" className="mop-fallback-toggle" onClick={() => reconnect(main.id)}>RECONNECT</button>}
+              <button type="button" className="mop-fallback-remove" onClick={() => removeSlot(main.id)} aria-label="Remove main">×</button>
+            </div>
+          </div>
         ) : (
+          <div style={emptyFallback}>No main provider yet. Pick one below and choose “Set as main”.</div>
+        )}
+
+        {fallbacks.length > 0 && (
           <ul className="mop-fallback-list">
             {fallbacks.map((slot, index) => (
               <li
@@ -306,34 +311,94 @@ function ProvidersSettings() {
                 <span className="mop-fallback-grip" aria-hidden>⠿</span>
                 <span className="mop-fallback-order">{index + 1}</span>
                 <div className="mop-fallback-info">
-                  <strong>{slot.name}</strong>
-                  <small>{slot.model ?? "default model"}{slot.keyHint ? ` · ${slot.keyHint}` : slot.authType === "oauth" ? " · not connected" : ""}</small>
+                  <strong>{slot.name} <span className="mop-provider-auth">{authLabel(slot.authType)}</span></strong>
+                  <small>{slot.model ?? "default model"}{slot.keyHint ? ` · ${slot.keyHint}` : slot.authType === "oauth" ? " · not linked" : ""}</small>
                 </div>
-                <button type="button" className="mop-fallback-toggle" onClick={() => patch({ update: { id: slot.id, enabled: !slot.enabled } })} title={slot.enabled ? "Enabled" : "Disabled"}>
-                  {slot.enabled ? "ON" : "OFF"}
-                </button>
-                <button type="button" className="mop-fallback-remove" onClick={() => removeSlot(slot.id)} aria-label="Remove">×</button>
+                <div className="mop-fallback-actions">
+                  {slot.authType === "oauth" && <button type="button" className="mop-fallback-toggle" onClick={() => reconnect(slot.id)} title="Reconnect subscription">↻</button>}
+                  <button type="button" className="mop-fallback-toggle" onClick={() => patch({ update: { id: slot.id, enabled: !slot.enabled } })} title={slot.enabled ? "Enabled" : "Disabled"}>
+                    {slot.enabled ? "ON" : "OFF"}
+                  </button>
+                  <button type="button" className="mop-fallback-remove" onClick={() => removeSlot(slot.id)} aria-label="Remove">×</button>
+                </div>
               </li>
             ))}
           </ul>
         )}
+      </div>
 
-        <form onSubmit={addFallback} className="mop-fallback-add">
-          <select value={fbProvider} onChange={(e) => { setFbProvider(e.target.value); setFbModel(""); }} style={inputStyle}>
-            {catalog.map((p) => <option key={p.id} value={p.id}>{p.name}{p.auth === "oauth" ? " (subscription)" : ""}</option>)}
-          </select>
-          {fbMeta?.auth === "oauth" ? (
-            <span style={{ ...oauthNote, gridColumn: "1 / -1" }}>{fbMeta.note}</span>
-          ) : (
-            <>
-              <input placeholder={fbMeta?.keyPlaceholder ?? "API key"} type="password" value={fbKey} onChange={(e) => setFbKey(e.target.value)} style={inputStyle} />
-              {fbMeta?.auth === "custom" && <input placeholder="https://endpoint/v1" value={fbBaseUrl} onChange={(e) => setFbBaseUrl(e.target.value)} style={inputStyle} />}
-              <input placeholder={fbMeta?.defaultModel || "model id"} value={fbModel} onChange={(e) => setFbModel(e.target.value)} style={inputStyle} />
-              <button type="submit" style={primaryButton}>＋ ADD FALLBACK</button>
-            </>
-          )}
-        </form>
-        {fbMsg && <p style={messageStyle}>{fbMsg}</p>}
+      {/* ── Provider catalog as cards ── */}
+      <div className="mop-provider-card">
+        <div className="mop-provider-card-head">
+          <div><p className="mop-page-kicker">ADD A PROVIDER</p><strong>Choose a provider</strong></div>
+        </div>
+        <p style={cardHint}>Tap a card, then set it as your main provider or add it to the fallback chain.</p>
+
+        <div className="mop-provider-grid">
+          {catalog.map((p) => (
+            <button
+              type="button"
+              key={p.id}
+              className={`mop-provider-pick${picked === p.id ? " is-selected" : ""}`}
+              onClick={() => pick(p.id)}
+            >
+              <strong>{p.name}</strong>
+              <span className="mop-provider-auth">{authLabel(p.auth)}</span>
+              {p.note && <small>{p.note}</small>}
+            </button>
+          ))}
+        </div>
+
+        {meta && (
+          <div className="mop-provider-config">
+            {meta.auth === "oauth" ? (
+              <>
+                <p style={{ ...cardHint, margin: 0 }}>{meta.note}</p>
+                {meta.id === "chatgpt-sub" && (
+                  <p style={{ ...oauthNote, margin: "2px 0 0" }}>
+                    Heads-up: ChatGPT’s login redirects to the local Codex listener (<code>localhost:1455</code>), so it only
+                    completes when MOP-AGENT runs where it can catch that callback. Claude logs in with a paste-back code.
+                  </p>
+                )}
+                {!oauth ? (
+                  <div className="mop-provider-actions">
+                    <button type="button" style={primaryButton} onClick={() => beginOAuth("main")}>CONNECT AS MAIN</button>
+                    <button type="button" style={ghostButton} onClick={() => beginOAuth("fallback")}>CONNECT AS FALLBACK</button>
+                  </div>
+                ) : (
+                  <div className="mop-oauth-paste">
+                    <p style={{ ...cardHint, margin: 0 }}>A login tab opened. Authorise, copy the code shown on the callback page, then paste it here.</p>
+                    <input placeholder="Paste authorization code" value={oauthCode} onChange={(e) => setOauthCode(e.target.value)} style={inputStyle} />
+                    <div className="mop-provider-actions">
+                      <button type="button" style={primaryButton} disabled={!oauthCode.trim()} onClick={completeOAuth}>COMPLETE LINK</button>
+                      <button type="button" style={ghostButton} onClick={() => { setOauth(null); setOauthCode(""); setOauthMsg(""); }}>CANCEL</button>
+                    </div>
+                  </div>
+                )}
+                {oauthMsg && <p style={messageStyle}>{oauthMsg}</p>}
+              </>
+            ) : (
+              <>
+                <label style={labelStyle}>API key
+                  <input placeholder={meta.keyPlaceholder ?? "Paste API key"} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} style={inputStyle} />
+                </label>
+                {meta.auth === "custom" && (
+                  <label style={labelStyle}>Base URL
+                    <input placeholder="https://your-endpoint/v1" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} style={inputStyle} />
+                  </label>
+                )}
+                <label style={labelStyle}>Model
+                  <input placeholder={meta.defaultModel || "model id"} value={model} onChange={(e) => setModel(e.target.value)} style={inputStyle} />
+                </label>
+                <div className="mop-provider-actions">
+                  <button type="button" style={primaryButton} onClick={() => save("main")}>SET AS MAIN</button>
+                  <button type="button" style={ghostButton} onClick={() => save("fallback")}>＋ ADD AS FALLBACK</button>
+                </div>
+                {msg && <p style={messageStyle}>{msg}</p>}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
@@ -433,7 +498,7 @@ const sectionHeading: CSSProperties = { display: "flex", alignItems: "center", j
 const titleStyle: CSSProperties = { margin: 0, fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 22 };
 const statusBadge: CSSProperties = { padding: "6px 8px", border: "1px solid rgba(45,74,62,.32)", color: "#2d4a3e", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 9, fontWeight: 900, letterSpacing: ".1em" };
 const muted: CSSProperties = { color: "rgba(45,74,62,.58)" };
-const formGrid: CSSProperties = { display: "grid", gap: 13, marginTop: 14 };
+const ghostButton: CSSProperties = { minHeight: 40, padding: "9px 15px", border: "1px solid rgba(116,34,32,.5)", background: "transparent", color: "#742220", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 10, fontWeight: 900, cursor: "pointer" };
 const labelStyle: CSSProperties = { display: "grid", gap: 6, color: "#742220", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 11, fontWeight: 800, letterSpacing: ".07em", textTransform: "uppercase" };
 const inputStyle: CSSProperties = { width: "100%", minHeight: 40, padding: "9px 11px", border: "1px solid rgba(45,74,62,.4)", background: "#fffdf2", color: "#2d4a3e" };
 const primaryButton: CSSProperties = { minHeight: 40, padding: "9px 15px", border: "1px solid #742220", background: "#742220", color: "#fef9e1", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 10, fontWeight: 900, cursor: "pointer" };

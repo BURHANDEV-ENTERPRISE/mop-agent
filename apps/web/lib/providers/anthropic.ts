@@ -1,8 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ChatProvider, ChatOptions } from "./types";
 
-export function anthropicProvider(apiKey: string, model = "claude-sonnet-4-6"): ChatProvider {
-  const client = new Anthropic({ apiKey });
+/** API key (string) or a subscription OAuth bearer token. */
+export type AnthropicAuth = string | { authToken: string };
+
+export function anthropicProvider(auth: AnthropicAuth, model = "claude-sonnet-4-6"): ChatProvider {
+  const client =
+    typeof auth === "string"
+      ? new Anthropic({ apiKey: auth })
+      : // OAuth (Claude Pro/Max): bearer token + the oauth beta flag, no x-api-key.
+        new Anthropic({ authToken: auth.authToken, defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" } });
   return {
     id: "anthropic",
     model,

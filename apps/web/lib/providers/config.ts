@@ -11,6 +11,7 @@ import { getDb } from "../db/client";
 import { providerConfig, providerSlot } from "../db/schema";
 import { decryptSecret, encryptSecret, keyHint } from "../crypto";
 import { getProviderMeta } from "./catalog";
+import type { OAuthProviderId, OAuthTokens, SlotRole as OAuthSlotRole } from "./oauth";
 
 export type SlotRole = "main" | "fallback";
 export type SlotRow = typeof providerSlot.$inferSelect;
@@ -65,16 +66,40 @@ function getSlot(id: string): SlotRow | undefined {
   return getDb().select().from(providerSlot).where(eq(providerSlot.id, id)).all()[0];
 }
 
+/** OAuth slots store their token bundle (JSON) in apiKeyEnc instead of an API key. */
+export function readOAuthTokens(row: SlotRow): OAuthTokens | null {
+  if (row.authType !== "oauth" || !row.apiKeyEnc) return null;
+  try {
+    const parsed = JSON.parse(decryptSecret(row.apiKeyEnc)) as Partial<OAuthTokens>;
+    if (!parsed.access_token) return null;
+    return {
+      access_token: parsed.access_token,
+      refresh_token: parsed.refresh_token,
+      expires_at: Number(parsed.expires_at ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function maskSlot(row: SlotRow): MaskedSlot {
   const meta = getProviderMeta(row.provider);
   let hint: string | null = null;
-  if (row.apiKeyEnc) {
+  let connected = false;
+
+  if (row.authType === "oauth") {
+    const tokens = readOAuthTokens(row);
+    connected = !!tokens;
+    hint = tokens ? (tokens.expires_at > Date.now() ? "subscription · linked" : "subscription · expired") : null;
+  } else if (row.apiKeyEnc) {
+    connected = true;
     try {
       hint = keyHint(decryptSecret(row.apiKeyEnc));
     } catch {
       hint = "••••";
     }
   }
+
   return {
     id: row.id,
     provider: row.provider,
@@ -86,7 +111,7 @@ export function maskSlot(row: SlotRow): MaskedSlot {
     baseUrl: row.baseUrl,
     keyHint: hint,
     enabled: row.enabled,
-    connected: row.authType === "oauth" ? false : !!row.apiKeyEnc,
+    connected,
   };
 }
 
@@ -142,6 +167,54 @@ export function addFallbackSlot(input: SlotInput): MaskedSlot {
     .values({ id, ...fields, role: "fallback", orderIndex: maxOrder + 1, enabled: true, updatedAt: Date.now() })
     .run();
   return maskSlot(getSlot(id)!);
+}
+
+/**
+ * Persist OAuth tokens into a slot (main upsert or fallback append). Tokens are
+ * AES-GCM encrypted at rest in apiKeyEnc, same column as API keys.
+ */
+export function saveOAuthSlot(provider: OAuthProviderId, role: OAuthSlotRole, tokens: OAuthTokens): MaskedSlot {
+  const meta = getProviderMeta(provider);
+  const apiKeyEnc = encryptSecret(JSON.stringify(tokens));
+  const fields = {
+    provider,
+    label: meta?.name ?? null,
+    authType: "oauth" as const,
+    apiKeyEnc,
+    baseUrl: null,
+    model: meta?.defaultModel ?? null,
+  };
+
+  if (role === "main") {
+    const existing = getMainSlot();
+    if (existing) {
+      getDb().update(providerSlot).set({ ...fields, updatedAt: Date.now() }).where(eq(providerSlot.id, existing.id)).run();
+      return maskSlot(getSlot(existing.id)!);
+    }
+    const id = newId();
+    getDb().insert(providerSlot).values({ id, ...fields, role: "main", orderIndex: 0, enabled: true, updatedAt: Date.now() }).run();
+    return maskSlot(getSlot(id)!);
+  }
+
+  // fallback: reuse an existing oauth slot for the same provider, else append
+  const existing = getFallbackSlots().find((s) => s.provider === provider && s.authType === "oauth");
+  if (existing) {
+    getDb().update(providerSlot).set({ ...fields, updatedAt: Date.now() }).where(eq(providerSlot.id, existing.id)).run();
+    return maskSlot(getSlot(existing.id)!);
+  }
+  const maxOrder = getFallbackSlots().reduce((max, slot) => Math.max(max, slot.orderIndex), -1);
+  const id = newId();
+  getDb().insert(providerSlot).values({ id, ...fields, role: "fallback", orderIndex: maxOrder + 1, enabled: true, updatedAt: Date.now() }).run();
+  return maskSlot(getSlot(id)!);
+}
+
+/** Overwrite just the token bundle on an existing oauth slot (used after refresh). */
+export function writeOAuthTokens(id: string, tokens: OAuthTokens): void {
+  getDb()
+    .update(providerSlot)
+    .set({ apiKeyEnc: encryptSecret(JSON.stringify(tokens)), updatedAt: Date.now() })
+    .where(eq(providerSlot.id, id))
+    .run();
 }
 
 export function updateSlot(

@@ -40,6 +40,9 @@ export default function GraphPage() {
   const [pairError, setPairError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  const [consolidating, setConsolidating] = useState(false);
+  const [consolidateMsg, setConsolidateMsg] = useState("");
+
   const seenProjects = useRef<Set<string> | null>(null);
 
   // ── restore tabs ─────────────────────────────────────────────────────────
@@ -198,13 +201,35 @@ export default function GraphPage() {
     }
   }
 
+  async function consolidate() {
+    setConsolidating(true);
+    setConsolidateMsg("Consolidating…");
+    try {
+      const response = await fetch("/api/consolidate", { method: "POST" });
+      const result = await response.json();
+      if (response.ok) {
+        setConsolidateMsg(`${result.scanned} scanned · ${result.notesCreated} patterns`);
+        // refresh Main Brain so freshly promoted patterns show up as nodes
+        fetch("/api/graph")
+          .then((r) => r.json())
+          .then((data: GraphData) => setMainData({ nodes: data.nodes ?? [], edges: data.edges ?? [] }))
+          .catch(() => {});
+      } else {
+        setConsolidateMsg(`Failed: ${result.error}`);
+      }
+    } catch {
+      setConsolidateMsg("Failed: network error");
+    } finally {
+      setConsolidating(false);
+    }
+  }
+
   const onlineCount = projects.filter((p) => p.status === "online").length;
 
   return (
     <main className={`mop-graph-view${labelsVisible ? " show-labels" : " hide-labels"}`}>
       {/* ── browser-style tab strip ── */}
       <div className="mop-graph-tabs">
-        <a href="/brain" className="mop-graph-tabs-back" aria-label="Back to Brain">←</a>
         <div className="mop-graph-tablist" role="tablist">
           {tabs.map((tab) => (
             <div
@@ -251,6 +276,16 @@ export default function GraphPage() {
           <span>⌕</span>
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search memory graph" />
         </label>
+        {active === MAIN_TAB && (
+          <button
+            type="button"
+            onClick={consolidate}
+            disabled={consolidating}
+            title={consolidateMsg || "Promote recurring project memory into Main Brain"}
+          >
+            {consolidating ? "⟳ Consolidating…" : "⟳ Consolidate"}
+          </button>
+        )}
         <button type="button" onClick={() => setLabelsVisible((visible) => !visible)}>
           {labelsVisible ? "Hide labels" : "Show labels"}
         </button>

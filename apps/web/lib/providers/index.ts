@@ -10,14 +10,27 @@ import { openAICompatProvider } from "./openaiCompat";
 import { echoProvider } from "./echo";
 import { getProviderMeta } from "./catalog";
 import { decryptSecret } from "../crypto";
-import { getFallbackSlots, getMainSlot, type SlotRow } from "./config";
+import { getFallbackSlots, getMainSlot, readOAuthTokens, type SlotRow } from "./config";
 
 export type { ChatProvider, ChatOptions, Msg } from "./types";
 export { anthropicProvider, openRouterProvider, openAICompatProvider, echoProvider };
 
 function providerFromSlot(slot: SlotRow): ChatProvider | null {
   if (!slot.enabled) return null;
-  if (slot.authType === "oauth") return null; // subscription login not wired yet
+
+  // Subscription OAuth: use the stored bearer token. Refresh is handled out of
+  // band (settings "Reconnect" / refresh endpoint); an expired token is skipped
+  // so the chain falls through to the next provider.
+  if (slot.authType === "oauth") {
+    const tokens = readOAuthTokens(slot);
+    if (!tokens || tokens.expires_at <= Date.now()) return null;
+    const meta = getProviderMeta(slot.provider);
+    const model = slot.model ?? meta?.defaultModel ?? "claude-sonnet-4-6";
+    if (slot.provider === "claude-sub") return anthropicProvider({ authToken: tokens.access_token }, model);
+    // chatgpt-sub inference rides the ChatGPT backend protocol, not /chat/completions — not wired yet.
+    return null;
+  }
+
   if (!slot.apiKeyEnc) return null;
   let apiKey: string;
   try {
