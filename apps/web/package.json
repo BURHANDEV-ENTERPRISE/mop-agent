@@ -10,7 +10,7 @@
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "cli": "tsx bin/mop-agent.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
