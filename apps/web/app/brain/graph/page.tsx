@@ -10,7 +10,7 @@ type Project = { id: string; name: string; status: string; memoryCount: number }
 const MAIN_TAB = "main";
 const STORAGE_KEY = "mop-graph-tabs";
 
-const MAIN_TYPES: GraphKind[] = ["main", "project", "pattern", "skill"];
+const MAIN_TYPES: GraphKind[] = ["main", "project", "agent", "memory", "pattern", "skill"];
 const PROJECT_TYPES: GraphKind[] = ["project", "agent", "memory", "skill"];
 
 const TYPE_LABELS: Record<GraphKind, string> = {

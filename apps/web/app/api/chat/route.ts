@@ -5,6 +5,7 @@
  */
 import { auth } from "@/lib/auth";
 import { recall } from "@/lib/brain/broker";
+import { saveChatMemory } from "@/lib/brain/chatMemory";
 import { resolveProvider } from "@/lib/providers";
 import type { ChatImage } from "@/lib/providers/types";
 
@@ -60,16 +61,28 @@ export async function POST(req: Request): Promise<Response> {
     pack.toPromptString(),
   ].join("\n");
 
+  const actor = session.user.name || session.user.email || "user";
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let answer = "";
       try {
         for await (const delta of provider.chat({ system, messages: [{ role: "user", content: userMessage, image: image ?? undefined }] })) {
+          answer += delta;
           controller.enqueue(encoder.encode(delta));
         }
       } catch (e) {
         controller.enqueue(encoder.encode(`\n[provider error: ${e instanceof Error ? e.message : String(e)}]`));
       } finally {
+        // Persist the exchange as memory. Central assistant → Main Brain bucket;
+        // a project chat → that project. Skip the offline echo placeholder.
+        if (provider.id !== "echo" && answer.trim()) {
+          try {
+            await saveChatMemory({ projectId, actor, userMessage, answer });
+          } catch {
+            /* memory persistence is best-effort; never break the response */
+          }
+        }
         controller.close();
       }
     },
