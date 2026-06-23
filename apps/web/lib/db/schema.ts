@@ -78,12 +78,32 @@ export const invite = sqliteTable("invite", {
   createdAt: integer("created_at").notNull(),
 });
 
-/** Per-owner AI provider config; apiKeyEnc is AES-256-GCM encrypted at rest. */
+/** Per-owner AI provider config (legacy, single provider). Superseded by providerSlot. */
 export const providerConfig = sqliteTable("provider_config", {
   ownerId: text("owner_id").primaryKey(),
   provider: text("provider").notNull(), // "anthropic" | "openrouter"
   apiKeyEnc: text("api_key_enc").notNull(),
   model: text("model"),
+  updatedAt: integer("updated_at").notNull(),
+});
+
+/**
+ * Shared (global) AI provider chain. Every user uses the same configuration.
+ * Exactly one row should have role='main'; the rest are ordered fallbacks
+ * (orderIndex) tried in sequence when the one before fails. apiKeyEnc is
+ * AES-256-GCM encrypted; oauth slots store their token there instead (later).
+ */
+export const providerSlot = sqliteTable("provider_slot", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(), // catalog id: openai | anthropic | openrouter | gemini | …
+  label: text("label"),
+  role: text("role").notNull().default("fallback"), // "main" | "fallback"
+  orderIndex: integer("order_index").notNull().default(0),
+  authType: text("auth_type").notNull().default("apikey"), // "apikey" | "oauth" | "custom"
+  apiKeyEnc: text("api_key_enc"),
+  baseUrl: text("base_url"),
+  model: text("model"),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   updatedAt: integer("updated_at").notNull(),
 });
 

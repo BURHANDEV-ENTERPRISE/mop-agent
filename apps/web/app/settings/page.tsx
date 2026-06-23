@@ -4,10 +4,33 @@ import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { useMemoryCore } from "@/components/AppShell";
 
-type Masked = { configured: boolean; provider?: string; model?: string | null; keyHint?: string };
 type Member = { id: string; email: string; name: string; role: string };
 type AppId = "telegram" | "discord" | "whatsapp" | "slack" | "webhook";
 type AppConfig = { appId: AppId; configured: boolean; enabled: boolean; keyHint: string; updatedAt: number };
+
+type ProviderMeta = {
+  id: string;
+  name: string;
+  auth: "apikey" | "oauth" | "custom";
+  openaiCompatible: boolean;
+  baseUrl?: string;
+  defaultModel: string;
+  keyPlaceholder?: string;
+  note?: string;
+};
+type Slot = {
+  id: string;
+  provider: string;
+  name: string;
+  role: "main" | "fallback";
+  orderIndex: number;
+  authType: string;
+  model: string | null;
+  baseUrl: string | null;
+  keyHint: string | null;
+  enabled: boolean;
+  connected: boolean;
+};
 
 const APP_CATALOG: Array<{ id: AppId; name: string; icon: string; description: string; secretLabel: string; fieldLabel: string; fieldKey: string; runtime: boolean }> = [
   { id: "telegram", name: "Telegram", icon: "✈", description: "Private bot conversations and project-bound chats.", secretLabel: "Bot token", fieldLabel: "Bot username (optional)", fieldKey: "username", runtime: true },
@@ -19,12 +42,6 @@ const APP_CATALOG: Array<{ id: AppId; name: string; icon: string; description: s
 
 export default function SettingsPage() {
   const { settingsSection: section } = useMemoryCore();
-  const [config, setConfig] = useState<Masked>({ configured: false });
-  const [env, setEnv] = useState<{ anthropic: boolean; openrouter: boolean }>({ anthropic: false, openrouter: false });
-  const [provider, setProvider] = useState<"anthropic" | "openrouter">("openrouter");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("");
-  const [providerMsg, setProviderMsg] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,36 +49,13 @@ export default function SettingsPage() {
   const [role, setRole] = useState<"member" | "owner">("member");
   const [userMsg, setUserMsg] = useState("");
 
-  function loadProvider() {
-    fetch("/api/providers").then((r) => r.json()).then((data) => {
-      setConfig(data.config ?? { configured: false });
-      setEnv(data.env ?? { anthropic: false, openrouter: false });
-    }).catch(() => {});
-  }
-
   function loadUsers() {
     fetch("/api/members").then((r) => (r.ok ? r.json() : { members: [] })).then((data) => setMembers(data.members ?? [])).catch(() => {});
   }
 
   useEffect(() => {
-    loadProvider();
     loadUsers();
   }, []);
-
-
-  async function saveProvider(e: React.FormEvent) {
-    e.preventDefault();
-    setProviderMsg("Saving…");
-    const response = await fetch("/api/providers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ provider, apiKey, model: model || undefined }),
-    });
-    const data = await response.json();
-    setProviderMsg(response.ok ? "Provider saved. The API key is encrypted." : `Unable to save: ${data.error}`);
-    setApiKey("");
-    if (response.ok) setConfig(data.config);
-  }
 
   async function createUser(e: React.FormEvent) {
     e.preventDefault();
@@ -95,45 +89,7 @@ export default function SettingsPage() {
       <div className="mop-settings-grid">
         <section className="mop-settings-content mop-panel">
           {section === "providers" ? (
-            <>
-              <div style={sectionHeading}>
-                <div>
-                  <p className="mop-page-kicker">AI CONNECTION</p>
-                  <h2 style={titleStyle}>Providers</h2>
-                </div>
-                <span style={{ ...statusBadge, color: config.configured ? "#2d4a3e" : "#742220" }}>
-                  {config.configured ? "● CONNECTED" : "● OFFLINE DEMO"}
-                </span>
-              </div>
-
-              <div style={summaryCard}>
-                {config.configured ? (
-                  <><strong>{config.provider}</strong>{config.model ? ` · ${config.model}` : ""}<span style={muted}> · key {config.keyHint}</span></>
-                ) : (
-                  <>No provider key saved. Assistant currently uses the offline echo provider.</>
-                )}
-                <div style={{ ...muted, marginTop: 7, fontSize: 12 }}>
-                  Environment: Anthropic {env.anthropic ? "available" : "not set"} · OpenRouter {env.openrouter ? "available" : "not set"}
-                </div>
-              </div>
-
-              <form onSubmit={saveProvider} style={formGrid}>
-                <label style={labelStyle}>Provider
-                  <select value={provider} onChange={(e) => setProvider(e.target.value as "anthropic" | "openrouter")} style={inputStyle}>
-                    <option value="openrouter">OpenRouter</option>
-                    <option value="anthropic">Anthropic</option>
-                  </select>
-                </label>
-                <label style={labelStyle}>API key
-                  <input placeholder="Paste a new API key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} required style={inputStyle} />
-                </label>
-                <label style={labelStyle}>Model
-                  <input placeholder={provider === "anthropic" ? "claude-sonnet-4-6" : "anthropic/claude-sonnet-4.6"} value={model} onChange={(e) => setModel(e.target.value)} style={inputStyle} />
-                </label>
-                <button type="submit" style={primaryButton}>SAVE PROVIDER</button>
-              </form>
-              {providerMsg && <p style={messageStyle}>{providerMsg}</p>}
-            </>
+            <ProvidersSettings />
           ) : section === "users" ? (
             <>
               <div style={sectionHeading}>
@@ -181,6 +137,205 @@ export default function SettingsPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+function ProvidersSettings() {
+  const [catalog, setCatalog] = useState<ProviderMeta[]>([]);
+  const [main, setMain] = useState<Slot | null>(null);
+  const [fallbacks, setFallbacks] = useState<Slot[]>([]);
+
+  const [mainProvider, setMainProvider] = useState("anthropic");
+  const [mainKey, setMainKey] = useState("");
+  const [mainModel, setMainModel] = useState("");
+  const [mainBaseUrl, setMainBaseUrl] = useState("");
+  const [mainMsg, setMainMsg] = useState("");
+
+  const [fbProvider, setFbProvider] = useState("openai");
+  const [fbKey, setFbKey] = useState("");
+  const [fbModel, setFbModel] = useState("");
+  const [fbBaseUrl, setFbBaseUrl] = useState("");
+  const [fbMsg, setFbMsg] = useState("");
+
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const mainMeta = catalog.find((p) => p.id === mainProvider);
+  const fbMeta = catalog.find((p) => p.id === fbProvider);
+
+  function load() {
+    fetch("/api/providers")
+      .then((r) => r.json())
+      .then((data) => {
+        setCatalog(data.catalog ?? []);
+        setMain(data.main ?? null);
+        setFallbacks(data.fallbacks ?? []);
+      })
+      .catch(() => {});
+  }
+  useEffect(load, []);
+
+  async function saveMain(e: React.FormEvent) {
+    e.preventDefault();
+    setMainMsg("Saving…");
+    const response = await fetch("/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ role: "main", provider: mainProvider, apiKey: mainKey, model: mainModel || undefined, baseUrl: mainBaseUrl || undefined }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      setMain(data.main ?? null);
+      setFallbacks(data.fallbacks ?? []);
+      setMainKey("");
+      setMainMsg("Main provider saved · key encrypted.");
+    } else {
+      setMainMsg(`Unable to save: ${data.error}`);
+    }
+  }
+
+  async function addFallback(e: React.FormEvent) {
+    e.preventDefault();
+    setFbMsg("Adding…");
+    const response = await fetch("/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ role: "fallback", provider: fbProvider, apiKey: fbKey, model: fbModel || undefined, baseUrl: fbBaseUrl || undefined }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      setFallbacks(data.fallbacks ?? []);
+      setFbKey("");
+      setFbModel("");
+      setFbBaseUrl("");
+      setFbMsg("");
+    } else {
+      setFbMsg(`Unable to add: ${data.error}`);
+    }
+  }
+
+  async function patch(body: unknown) {
+    const response = await fetch("/api/providers", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const data = await response.json();
+    if (response.ok) setFallbacks(data.fallbacks ?? []);
+  }
+  async function removeSlot(id: string) {
+    const response = await fetch("/api/providers", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+    const data = await response.json();
+    if (response.ok) {
+      setMain(data.main ?? null);
+      setFallbacks(data.fallbacks ?? []);
+    }
+  }
+
+  function onDrop(targetIndex: number) {
+    if (dragIndex === null || dragIndex === targetIndex) return setDragIndex(null);
+    const next = [...fallbacks];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(targetIndex, 0, moved!);
+    setFallbacks(next);
+    setDragIndex(null);
+    patch({ reorder: next.map((s) => s.id) });
+  }
+
+  return (
+    <>
+      <div style={sectionHeading}>
+        <div><p className="mop-page-kicker">AI CONNECTION</p><h2 style={titleStyle}>Providers</h2></div>
+        <span style={{ ...statusBadge, color: main?.connected ? "#2d4a3e" : "#742220" }}>
+          {main?.connected ? "● CONNECTED" : "● OFFLINE DEMO"}
+        </span>
+      </div>
+
+      {/* ── Card 1: Main provider (exactly one) ── */}
+      <div className="mop-provider-card">
+        <div className="mop-provider-card-head">
+          <div><p className="mop-page-kicker">PRIMARY</p><strong>Main provider</strong></div>
+          {main && <span className="mop-provider-pill">{main.name}{main.model ? ` · ${main.model}` : ""}{main.keyHint ? ` · ${main.keyHint}` : ""}</span>}
+        </div>
+        <p style={cardHint}>One provider answers first. Pick the model you trust most.</p>
+        <form onSubmit={saveMain} style={formGrid}>
+          <label style={labelStyle}>Provider
+            <select value={mainProvider} onChange={(e) => { setMainProvider(e.target.value); setMainModel(""); }} style={inputStyle}>
+              {catalog.map((p) => <option key={p.id} value={p.id}>{p.name}{p.auth === "oauth" ? " (subscription)" : ""}</option>)}
+            </select>
+          </label>
+          {mainMeta?.auth === "oauth" ? (
+            <div style={oauthNote}>{mainMeta.note}<button type="button" disabled style={{ ...primaryButton, marginTop: 9, opacity: .5, cursor: "not-allowed" }}>CONNECT (COMING NEXT)</button></div>
+          ) : (
+            <>
+              <label style={labelStyle}>API key
+                <input placeholder={main?.role === "main" ? `Saved ${main.keyHint ?? ""} · leave blank to keep` : (mainMeta?.keyPlaceholder ?? "Paste API key")} type="password" value={mainKey} onChange={(e) => setMainKey(e.target.value)} style={inputStyle} />
+              </label>
+              {mainMeta?.auth === "custom" && (
+                <label style={labelStyle}>Base URL
+                  <input placeholder="https://your-endpoint/v1" value={mainBaseUrl} onChange={(e) => setMainBaseUrl(e.target.value)} style={inputStyle} />
+                </label>
+              )}
+              <label style={labelStyle}>Model
+                <input placeholder={mainMeta?.defaultModel || "model id"} value={mainModel} onChange={(e) => setMainModel(e.target.value)} style={inputStyle} />
+              </label>
+              <button type="submit" style={primaryButton}>SAVE MAIN PROVIDER</button>
+            </>
+          )}
+        </form>
+        {mainMsg && <p style={messageStyle}>{mainMsg}</p>}
+      </div>
+
+      {/* ── Card 2: Fallback providers (many, drag to reorder) ── */}
+      <div className="mop-provider-card">
+        <div className="mop-provider-card-head">
+          <div><p className="mop-page-kicker">FALLBACK CHAIN</p><strong>Fallback providers</strong></div>
+          <span style={statusBadge}>{fallbacks.length} CONFIGURED</span>
+        </div>
+        <p style={cardHint}>Tried in order when the one before fails. Drag to reorder — top is the first fallback.</p>
+
+        {fallbacks.length === 0 ? (
+          <div style={emptyFallback}>No fallbacks yet. Add one below so the assistant keeps working if the main provider is down.</div>
+        ) : (
+          <ul className="mop-fallback-list">
+            {fallbacks.map((slot, index) => (
+              <li
+                key={slot.id}
+                className={`mop-fallback-row${dragIndex === index ? " is-dragging" : ""}${slot.enabled ? "" : " is-disabled"}`}
+                draggable
+                onDragStart={() => setDragIndex(index)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => onDrop(index)}
+                onDragEnd={() => setDragIndex(null)}
+              >
+                <span className="mop-fallback-grip" aria-hidden>⠿</span>
+                <span className="mop-fallback-order">{index + 1}</span>
+                <div className="mop-fallback-info">
+                  <strong>{slot.name}</strong>
+                  <small>{slot.model ?? "default model"}{slot.keyHint ? ` · ${slot.keyHint}` : slot.authType === "oauth" ? " · not connected" : ""}</small>
+                </div>
+                <button type="button" className="mop-fallback-toggle" onClick={() => patch({ update: { id: slot.id, enabled: !slot.enabled } })} title={slot.enabled ? "Enabled" : "Disabled"}>
+                  {slot.enabled ? "ON" : "OFF"}
+                </button>
+                <button type="button" className="mop-fallback-remove" onClick={() => removeSlot(slot.id)} aria-label="Remove">×</button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form onSubmit={addFallback} className="mop-fallback-add">
+          <select value={fbProvider} onChange={(e) => { setFbProvider(e.target.value); setFbModel(""); }} style={inputStyle}>
+            {catalog.map((p) => <option key={p.id} value={p.id}>{p.name}{p.auth === "oauth" ? " (subscription)" : ""}</option>)}
+          </select>
+          {fbMeta?.auth === "oauth" ? (
+            <span style={{ ...oauthNote, gridColumn: "1 / -1" }}>{fbMeta.note}</span>
+          ) : (
+            <>
+              <input placeholder={fbMeta?.keyPlaceholder ?? "API key"} type="password" value={fbKey} onChange={(e) => setFbKey(e.target.value)} style={inputStyle} />
+              {fbMeta?.auth === "custom" && <input placeholder="https://endpoint/v1" value={fbBaseUrl} onChange={(e) => setFbBaseUrl(e.target.value)} style={inputStyle} />}
+              <input placeholder={fbMeta?.defaultModel || "model id"} value={fbModel} onChange={(e) => setFbModel(e.target.value)} style={inputStyle} />
+              <button type="submit" style={primaryButton}>＋ ADD FALLBACK</button>
+            </>
+          )}
+        </form>
+        {fbMsg && <p style={messageStyle}>{fbMsg}</p>}
+      </div>
+    </>
   );
 }
 
@@ -277,13 +432,15 @@ const adminBadge: CSSProperties = { padding: "7px 10px", color: "#fef9e1", backg
 const sectionHeading: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 20, paddingBottom: 15, borderBottom: "1px solid rgba(45,74,62,.24)" };
 const titleStyle: CSSProperties = { margin: 0, fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 22 };
 const statusBadge: CSSProperties = { padding: "6px 8px", border: "1px solid rgba(45,74,62,.32)", color: "#2d4a3e", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 9, fontWeight: 900, letterSpacing: ".1em" };
-const summaryCard: CSSProperties = { padding: 15, border: "1px solid rgba(45,74,62,.24)", background: "rgba(254,249,225,.72)", lineHeight: 1.5 };
 const muted: CSSProperties = { color: "rgba(45,74,62,.58)" };
-const formGrid: CSSProperties = { display: "grid", gap: 13, marginTop: 20 };
+const formGrid: CSSProperties = { display: "grid", gap: 13, marginTop: 14 };
 const labelStyle: CSSProperties = { display: "grid", gap: 6, color: "#742220", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 11, fontWeight: 800, letterSpacing: ".07em", textTransform: "uppercase" };
 const inputStyle: CSSProperties = { width: "100%", minHeight: 40, padding: "9px 11px", border: "1px solid rgba(45,74,62,.4)", background: "#fffdf2", color: "#2d4a3e" };
 const primaryButton: CSSProperties = { minHeight: 40, padding: "9px 15px", border: "1px solid #742220", background: "#742220", color: "#fef9e1", fontFamily: '"SFMono-Regular", Consolas, monospace', fontSize: 10, fontWeight: 900, cursor: "pointer" };
 const messageStyle: CSSProperties = { padding: "9px 11px", borderLeft: "3px solid #742220", background: "rgba(116,34,32,.06)", fontSize: 13 };
+const cardHint: CSSProperties = { ...muted, margin: "0 0 4px", fontSize: 12 };
+const emptyFallback: CSSProperties = { padding: 14, border: "1px dashed rgba(45,74,62,.32)", background: "rgba(254,249,225,.5)", color: "rgba(45,74,62,.62)", fontSize: 12, lineHeight: 1.5 };
+const oauthNote: CSSProperties = { padding: 13, border: "1px solid rgba(116,34,32,.28)", background: "rgba(116,34,32,.05)", color: "#742220", fontSize: 12, lineHeight: 1.5 };
 const tableStyle: CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 13 };
 const miniAvatar: CSSProperties = { width: 28, height: 28, display: "inline-grid", placeItems: "center", marginRight: 9, background: "#2d4a3e", color: "#fef9e1", fontWeight: 900 };
 const ownerRole: CSSProperties = { padding: "4px 7px", background: "#742220", color: "#fef9e1", fontSize: 9, fontWeight: 900 };

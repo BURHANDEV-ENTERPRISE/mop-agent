@@ -80,6 +80,20 @@ CREATE TABLE IF NOT EXISTS provider_config (
   updated_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS provider_slot (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  label TEXT,
+  role TEXT NOT NULL DEFAULT 'fallback',
+  order_index INTEGER NOT NULL DEFAULT 0,
+  auth_type TEXT NOT NULL DEFAULT 'apikey',
+  api_key_enc TEXT,
+  base_url TEXT,
+  model TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS app_config (
   owner_id TEXT NOT NULL,
   app_id TEXT NOT NULL,

@@ -1,24 +1,183 @@
-/** Provider config store — encrypted API keys (AES-GCM) per owner. */
-import { eq } from "drizzle-orm";
+/**
+ * Provider config store. Two layers:
+ *  - providerSlot (NEW): shared/global chain — one `main` + ordered `fallback`s,
+ *    used by every user. Keys AES-GCM encrypted at rest.
+ *  - providerConfig (LEGACY): the old per-owner single provider; kept so older
+ *    callers don't break. New code uses the slot API.
+ */
+import { randomBytes } from "node:crypto";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { providerConfig } from "../db/schema";
+import { providerConfig, providerSlot } from "../db/schema";
 import { decryptSecret, encryptSecret, keyHint } from "../crypto";
+import { getProviderMeta } from "./catalog";
 
-export type ProviderId = "anthropic" | "openrouter";
+export type SlotRole = "main" | "fallback";
+export type SlotRow = typeof providerSlot.$inferSelect;
 
-export function setProviderConfig(ownerId: string, input: { provider: ProviderId; apiKey: string; model?: string }): void {
-  const apiKeyEnc = encryptSecret(input.apiKey);
-  getDb()
-    .insert(providerConfig)
-    .values({ ownerId, provider: input.provider, apiKeyEnc, model: input.model ?? null, updatedAt: Date.now() })
-    .onConflictDoUpdate({
-      target: providerConfig.ownerId,
-      set: { provider: input.provider, apiKeyEnc, model: input.model ?? null, updatedAt: Date.now() },
-    })
-    .run();
+export type SlotInput = {
+  provider: string;
+  role?: SlotRole;
+  apiKey?: string;
+  model?: string;
+  baseUrl?: string;
+  label?: string;
+};
+
+export type MaskedSlot = {
+  id: string;
+  provider: string;
+  name: string;
+  role: SlotRole;
+  orderIndex: number;
+  authType: string;
+  model: string | null;
+  baseUrl: string | null;
+  keyHint: string | null;
+  enabled: boolean;
+  connected: boolean;
+};
+
+function newId(): string {
+  return `ps_${randomBytes(6).toString("hex")}`;
 }
 
-/** Raw row (with encrypted key) for a given owner, or the first configured owner. */
+// ── reads ────────────────────────────────────────────────────────────────────
+
+export function listSlots(): SlotRow[] {
+  return getDb().select().from(providerSlot).orderBy(asc(providerSlot.orderIndex)).all();
+}
+
+export function getMainSlot(): SlotRow | undefined {
+  return getDb().select().from(providerSlot).where(eq(providerSlot.role, "main")).all()[0];
+}
+
+export function getFallbackSlots(): SlotRow[] {
+  return getDb()
+    .select()
+    .from(providerSlot)
+    .where(eq(providerSlot.role, "fallback"))
+    .orderBy(asc(providerSlot.orderIndex))
+    .all();
+}
+
+function getSlot(id: string): SlotRow | undefined {
+  return getDb().select().from(providerSlot).where(eq(providerSlot.id, id)).all()[0];
+}
+
+export function maskSlot(row: SlotRow): MaskedSlot {
+  const meta = getProviderMeta(row.provider);
+  let hint: string | null = null;
+  if (row.apiKeyEnc) {
+    try {
+      hint = keyHint(decryptSecret(row.apiKeyEnc));
+    } catch {
+      hint = "••••";
+    }
+  }
+  return {
+    id: row.id,
+    provider: row.provider,
+    name: meta?.name ?? row.label ?? row.provider,
+    role: row.role as SlotRole,
+    orderIndex: row.orderIndex,
+    authType: row.authType,
+    model: row.model,
+    baseUrl: row.baseUrl,
+    keyHint: hint,
+    enabled: row.enabled,
+    connected: row.authType === "oauth" ? false : !!row.apiKeyEnc,
+  };
+}
+
+export function listMaskedSlots(): { main: MaskedSlot | null; fallbacks: MaskedSlot[] } {
+  const main = getMainSlot();
+  return {
+    main: main ? maskSlot(main) : null,
+    fallbacks: getFallbackSlots().map(maskSlot),
+  };
+}
+
+// ── writes ───────────────────────────────────────────────────────────────────
+
+function resolveFields(input: SlotInput, existing?: SlotRow) {
+  const meta = getProviderMeta(input.provider);
+  return {
+    provider: input.provider,
+    label: input.label ?? existing?.label ?? null,
+    authType: meta?.auth ?? "apikey",
+    apiKeyEnc: input.apiKey ? encryptSecret(input.apiKey) : (existing?.apiKeyEnc ?? null),
+    baseUrl: input.baseUrl ?? existing?.baseUrl ?? meta?.baseUrl ?? null,
+    model: input.model ?? existing?.model ?? meta?.defaultModel ?? null,
+  };
+}
+
+/** Upsert the single `main` slot (provider + credentials). */
+export function setMainSlot(input: SlotInput): MaskedSlot {
+  const existing = getMainSlot();
+  const fields = resolveFields(input, existing);
+  if (existing) {
+    getDb()
+      .update(providerSlot)
+      .set({ ...fields, updatedAt: Date.now() })
+      .where(eq(providerSlot.id, existing.id))
+      .run();
+    return maskSlot(getSlot(existing.id)!);
+  }
+  const id = newId();
+  getDb()
+    .insert(providerSlot)
+    .values({ id, ...fields, role: "main", orderIndex: 0, enabled: true, updatedAt: Date.now() })
+    .run();
+  return maskSlot(getSlot(id)!);
+}
+
+/** Append a new fallback slot at the end of the chain. */
+export function addFallbackSlot(input: SlotInput): MaskedSlot {
+  const fields = resolveFields(input);
+  const maxOrder = getFallbackSlots().reduce((max, slot) => Math.max(max, slot.orderIndex), -1);
+  const id = newId();
+  getDb()
+    .insert(providerSlot)
+    .values({ id, ...fields, role: "fallback", orderIndex: maxOrder + 1, enabled: true, updatedAt: Date.now() })
+    .run();
+  return maskSlot(getSlot(id)!);
+}
+
+export function updateSlot(
+  id: string,
+  patch: { model?: string; baseUrl?: string; apiKey?: string; enabled?: boolean },
+): MaskedSlot | null {
+  const existing = getSlot(id);
+  if (!existing) return null;
+  const set: Partial<SlotRow> = { updatedAt: Date.now() };
+  if (patch.model !== undefined) set.model = patch.model;
+  if (patch.baseUrl !== undefined) set.baseUrl = patch.baseUrl;
+  if (patch.enabled !== undefined) set.enabled = patch.enabled;
+  if (patch.apiKey) set.apiKeyEnc = encryptSecret(patch.apiKey);
+  getDb().update(providerSlot).set(set).where(eq(providerSlot.id, id)).run();
+  return maskSlot(getSlot(id)!);
+}
+
+export function removeSlot(id: string): void {
+  getDb().delete(providerSlot).where(eq(providerSlot.id, id)).run();
+}
+
+/** Reorder fallback slots to match the given id order (drag-and-drop). */
+export function reorderFallbacks(orderedIds: string[]): void {
+  const db = getDb();
+  orderedIds.forEach((id, index) => {
+    db.update(providerSlot)
+      .set({ orderIndex: index, updatedAt: Date.now() })
+      .where(and(eq(providerSlot.id, id), eq(providerSlot.role, "fallback")))
+      .run();
+  });
+}
+
+// ── legacy (old per-owner provider_config) ───────────────────────────────────
+
+export type ProviderId = string;
+
 export function getProviderConfigRow(ownerId?: string) {
   const db = getDb();
   if (ownerId) {
@@ -30,26 +189,4 @@ export function getProviderConfigRow(ownerId?: string) {
 
 export function getDecryptedKey(row: { apiKeyEnc: string }): string {
   return decryptSecret(row.apiKeyEnc);
-}
-
-/** Safe view for the UI — never returns the key itself. */
-export function getProviderConfigMasked(ownerId?: string): {
-  configured: boolean;
-  provider?: ProviderId;
-  model?: string | null;
-  keyHint?: string;
-} {
-  const row = getProviderConfigRow(ownerId);
-  if (!row) return { configured: false };
-  let hint = "••••";
-  try {
-    hint = keyHint(decryptSecret(row.apiKeyEnc));
-  } catch {
-    /* secret rotated — can't decrypt */
-  }
-  return { configured: true, provider: row.provider as ProviderId, model: row.model, keyHint: hint };
-}
-
-export function clearProviderConfig(ownerId: string): void {
-  getDb().delete(providerConfig).where(eq(providerConfig.ownerId, ownerId)).run();
 }

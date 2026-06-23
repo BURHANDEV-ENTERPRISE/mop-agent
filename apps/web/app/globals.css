@@ -736,6 +736,26 @@ button {
 .mop-link-dialog-error { font-size: 10px; color: #e89a94; }
 .mop-link-dialog-cancel { justify-self: end; height: 32px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, .16); background: transparent; color: #e9e5d4; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
+/* settings — provider cards + fallback drag-and-drop */
+.mop-provider-card { margin-top: 16px; padding: 16px; border: 1px solid rgba(45, 74, 62, .24); background: rgba(254, 249, 225, .62); }
+.mop-provider-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.mop-provider-card-head strong { font-family: "SFMono-Regular", Consolas, monospace; font-size: 16px; color: #2d4a3e; }
+.mop-provider-pill { padding: 5px 9px; border: 1px solid rgba(45, 74, 62, .28); background: #fffdf2; color: #2d4a3e; font-size: 11px; }
+.mop-fallback-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
+.mop-fallback-row { display: grid; grid-template-columns: 18px 22px 1fr auto auto; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid rgba(45, 74, 62, .26); background: #fffdf2; cursor: grab; }
+.mop-fallback-row.is-dragging { opacity: .45; }
+.mop-fallback-row.is-disabled { opacity: .55; }
+.mop-fallback-grip { color: rgba(45, 74, 62, .4); }
+.mop-fallback-order { width: 22px; height: 22px; display: grid; place-items: center; background: #2d4a3e; color: #fef9e1; font-size: 11px; font-weight: 900; }
+.mop-fallback-info { min-width: 0; }
+.mop-fallback-info strong { display: block; font-size: 13px; color: #2d4a3e; }
+.mop-fallback-info small { color: rgba(45, 74, 62, .58); font-size: 11px; }
+.mop-fallback-toggle { min-width: 40px; padding: 5px 8px; border: 1px solid rgba(45, 74, 62, .32); background: transparent; color: #2d4a3e; font-size: 10px; font-weight: 900; cursor: pointer; }
+.mop-fallback-remove { width: 26px; height: 26px; border: 1px solid rgba(116, 34, 32, .3); background: transparent; color: #742220; font-size: 15px; cursor: pointer; }
+.mop-fallback-add { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
+.mop-fallback-add > select, .mop-fallback-add > input { flex: 1 1 150px; min-width: 0; }
+.mop-fallback-add > button { flex: 0 0 auto; }
+
 .mop-sidebar-scrim { display: none; }
 
 /* Assistant content now lives inside the shared shell. */
