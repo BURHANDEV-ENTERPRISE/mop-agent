@@ -1,12 +1,12 @@
 {
   "name": "mop-agent",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "mop-agent",
-      "version": "0.1.22",
+      "version": "0.1.23",
       "license": "UNLICENSED",
       "workspaces": [
         "packages/*",

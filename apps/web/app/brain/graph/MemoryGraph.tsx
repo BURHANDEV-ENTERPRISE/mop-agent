@@ -60,15 +60,20 @@ type Vec = { x: number; y: number; vx: number; vy: number };
 /** Synchronous force relaxation → final positions keyed by node id. */
 function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, { x: number; y: number }> {
   const pos = new Map<string, Vec>();
+  const seed = new Map<string, { x: number; y: number }>(); // spread fallback if a node ever goes non-finite
   nodes.forEach((node, i) => {
     if (node.id === centerId) {
       pos.set(node.id, { x: 0, y: 0, vx: 0, vy: 0 });
+      seed.set(node.id, { x: 0, y: 0 });
       return;
     }
     // golden-angle seed spiral so the first frame is already spread out
     const a = i * 2.399963;
     const r = 130 + i * 7;
-    pos.set(node.id, { x: Math.cos(a) * r, y: Math.sin(a) * r, vx: 0, vy: 0 });
+    const sx = Math.cos(a) * r;
+    const sy = Math.sin(a) * r;
+    pos.set(node.id, { x: sx, y: sy, vx: 0, vy: 0 });
+    seed.set(node.id, { x: sx, y: sy });
   });
 
   const links = edges.filter((e) => pos.has(e.from) && pos.has(e.to));
@@ -77,6 +82,8 @@ function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, {
   const LINK_LEN = 86;
   const GRAVITY = 0.018;
   const DAMP = 0.85;
+  const MAX_V = 120; // cap per-step speed so a large graph can't blow up to Infinity → NaN
+  const BOUND = 8000; // cap position magnitude
   const n = nodes.length;
 
   for (let iter = 0; iter < 260; iter++) {
@@ -129,16 +136,28 @@ function settle(nodes: GNode[], edges: GEdge[], centerId: string): Map<string, {
       p.vy -= p.y * GRAVITY;
       p.vx *= DAMP;
       p.vy *= DAMP;
+      // clamp velocity so a dense graph (hundreds of nodes) can't diverge to Infinity
+      if (!Number.isFinite(p.vx)) p.vx = 0;
+      if (!Number.isFinite(p.vy)) p.vy = 0;
+      p.vx = Math.max(-MAX_V, Math.min(MAX_V, p.vx));
+      p.vy = Math.max(-MAX_V, Math.min(MAX_V, p.vy));
       p.x += p.vx;
       p.y += p.vy;
+      // keep positions finite + bounded; reseed if something still slipped through
+      if (!Number.isFinite(p.x)) p.x = seed.get(node.id)!.x;
+      if (!Number.isFinite(p.y)) p.y = seed.get(node.id)!.y;
+      p.x = Math.max(-BOUND, Math.min(BOUND, p.x));
+      p.y = Math.max(-BOUND, Math.min(BOUND, p.y));
     }
   }
 
   const out = new Map<string, { x: number; y: number }>();
   for (const [k, v] of pos) {
-    // guard against any non-finite drift from the force sim — NaN/Infinity here
-    // turns into invalid SVG path / viewBox numbers downstream.
-    out.set(k, { x: Number.isFinite(v.x) ? v.x : 0, y: Number.isFinite(v.y) ? v.y : 0 });
+    // final guard: any non-finite value would emit invalid SVG path / viewBox
+    // numbers. Fall back to the spread seed (not 0,0) so nodes never all collapse
+    // onto each other — coincident nodes make React Flow produce NaN edge paths.
+    const fallback = seed.get(k) ?? { x: 0, y: 0 };
+    out.set(k, { x: Number.isFinite(v.x) ? v.x : fallback.x, y: Number.isFinite(v.y) ? v.y : fallback.y });
   }
   return out;
 }

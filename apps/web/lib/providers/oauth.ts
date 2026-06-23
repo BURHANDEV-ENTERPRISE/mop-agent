@@ -31,6 +31,8 @@ type OAuthProviderConfig = {
   scope: string;
   /** "paste" → callback page displays a code to copy back; "localhost" → redirect to a local listener. */
   flow: "paste" | "localhost";
+  /** token endpoint body encoding. Anthropic accepts JSON (+state); OpenAI wants form, no state. */
+  tokenStyle: "json" | "form";
 };
 
 export const OAUTH_PROVIDERS: Record<OAuthProviderId, OAuthProviderConfig> = {
@@ -42,6 +44,7 @@ export const OAUTH_PROVIDERS: Record<OAuthProviderId, OAuthProviderConfig> = {
     redirectUri: "https://console.anthropic.com/oauth/code/callback",
     scope: "org:create_api_key user:profile user:inference",
     flow: "paste",
+    tokenStyle: "json",
   },
   "chatgpt-sub": {
     id: "chatgpt-sub",
@@ -51,6 +54,7 @@ export const OAUTH_PROVIDERS: Record<OAuthProviderId, OAuthProviderConfig> = {
     redirectUri: "http://localhost:1455/auth/callback",
     scope: "openid profile email offline_access",
     flow: "localhost",
+    tokenStyle: "form",
   },
 };
 
@@ -96,16 +100,42 @@ export function startOAuth(provider: OAuthProviderId, role: SlotRole): { authUrl
   const state = base64url(randomBytes(16));
   pending.set(state, { provider, role, verifier, createdAt: Date.now() });
 
-  const url = new URL(cfg.authorizeUrl);
-  url.searchParams.set("code", "true"); // Anthropic: render the code on the callback page
-  url.searchParams.set("client_id", cfg.clientId);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("redirect_uri", cfg.redirectUri);
-  url.searchParams.set("scope", cfg.scope);
-  url.searchParams.set("code_challenge", challenge);
-  url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("state", state);
-  return { authUrl: url.toString(), state, flow: cfg.flow };
+  // Build the query manually so spaces in `scope` encode as %20 (not "+").
+  // Anthropic's authorize rejects "+"-encoded scopes with "Invalid request format".
+  const params: Record<string, string> = {
+    code: "true", // Anthropic: render the code on the callback page
+    client_id: cfg.clientId,
+    response_type: "code",
+    redirect_uri: cfg.redirectUri,
+    scope: cfg.scope,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state,
+  };
+  const qs = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+  return { authUrl: `${cfg.authorizeUrl}?${qs}`, state, flow: cfg.flow };
+}
+
+/** Pull the auth code out of whatever the user pastes: bare code, "code#state", or a full callback URL. */
+function extractCode(raw: string): string {
+  const value = raw.trim();
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      const fromQuery = url.searchParams.get("code");
+      if (fromQuery) return fromQuery;
+      // some callbacks put code in the fragment: #code=...&state=...
+      const frag = new URLSearchParams(url.hash.replace(/^#/, ""));
+      const fromFrag = frag.get("code");
+      if (fromFrag) return fromFrag;
+    } catch {
+      /* fall through */
+    }
+  }
+  // Anthropic paste flow hands back "code#state"
+  return value.includes("#") ? value.split("#")[0]!.trim() : value;
 }
 
 function toTokens(data: Record<string, unknown>): OAuthTokens {
@@ -124,24 +154,38 @@ export async function exchangeCode(
   sweep();
   const entry = pending.get(state);
   if (!entry) throw new Error("state_expired_or_unknown");
-  pending.delete(state);
+  // NOTE: keep `entry` in the store until the exchange actually succeeds, so a
+  // failed attempt (bad paste, transient error) can be retried with the same code.
 
   const cfg = OAUTH_PROVIDERS[entry.provider];
-  // Anthropic's paste flow hands back "code#state" — keep only the code part.
-  const code = rawCode.includes("#") ? rawCode.split("#")[0]! : rawCode.trim();
+  const code = extractCode(rawCode);
 
-  const response = await fetch(cfg.tokenUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
+  // Anthropic accepts a JSON body and wants `state`; OpenAI wants form-encoded
+  // and rejects `state` ("Unknown parameter: 'state'").
+  let headers: Record<string, string>;
+  let body: string;
+  if (cfg.tokenStyle === "form") {
+    headers = { "content-type": "application/x-www-form-urlencoded", accept: "application/json" };
+    body = new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: cfg.redirectUri,
+      client_id: cfg.clientId,
+      code_verifier: entry.verifier,
+    }).toString();
+  } else {
+    headers = { "content-type": "application/json", accept: "application/json" };
+    body = JSON.stringify({
       grant_type: "authorization_code",
       code,
       redirect_uri: cfg.redirectUri,
       client_id: cfg.clientId,
       code_verifier: entry.verifier,
       state,
-    }),
-  });
+    });
+  }
+
+  const response = await fetch(cfg.tokenUrl, { method: "POST", headers, body });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(`token_exchange_failed_${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
@@ -149,15 +193,20 @@ export async function exchangeCode(
   const data = (await response.json()) as Record<string, unknown>;
   const tokens = toTokens(data);
   if (!tokens.access_token) throw new Error("token_exchange_no_access_token");
+  pending.delete(state); // consume the one-time state only on success
   return { provider: entry.provider, role: entry.role, tokens };
 }
 
 export async function refreshTokens(provider: OAuthProviderId, refreshToken: string): Promise<OAuthTokens> {
   const cfg = OAUTH_PROVIDERS[provider];
+  const refreshFields = { grant_type: "refresh_token", refresh_token: refreshToken, client_id: cfg.clientId };
   const response = await fetch(cfg.tokenUrl, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ grant_type: "refresh_token", refresh_token: refreshToken, client_id: cfg.clientId }),
+    headers:
+      cfg.tokenStyle === "form"
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }
+        : { "content-type": "application/json", accept: "application/json" },
+    body: cfg.tokenStyle === "form" ? new URLSearchParams(refreshFields).toString() : JSON.stringify(refreshFields),
   });
   if (!response.ok) throw new Error(`refresh_failed_${response.status}`);
   const data = (await response.json()) as Record<string, unknown>;
