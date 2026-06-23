@@ -5,6 +5,7 @@
  */
 import type { ChatProvider } from "./types";
 import { anthropicProvider } from "./anthropic";
+import { chatgptSubProvider } from "./chatgptSub";
 import { openRouterProvider } from "./openrouter";
 import { openAICompatProvider } from "./openaiCompat";
 import { echoProvider } from "./echo";
@@ -27,7 +28,7 @@ function providerFromSlot(slot: SlotRow): ChatProvider | null {
     const meta = getProviderMeta(slot.provider);
     const model = slot.model ?? meta?.defaultModel ?? "claude-sonnet-4-6";
     if (slot.provider === "claude-sub") return anthropicProvider({ authToken: tokens.access_token }, model);
-    // chatgpt-sub inference rides the ChatGPT backend protocol, not /chat/completions — not wired yet.
+    if (slot.provider === "chatgpt-sub") return chatgptSubProvider(tokens.access_token, slot.model ?? "gpt-5");
     return null;
   }
 
