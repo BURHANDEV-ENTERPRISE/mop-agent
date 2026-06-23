@@ -9,7 +9,7 @@
     "mop-flow-dev": "./bin/cli.mjs"
   },
   "scripts": {
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/serve.ts",
     "link": "tsx bin/cli.mjs link",
     "serve": "tsx bin/cli.mjs serve"
